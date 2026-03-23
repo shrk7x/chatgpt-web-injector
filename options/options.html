@@ -4,9 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ChatGPT Web Injector - Options</title>
+    <link rel="stylesheet" href="./options.css" />
   </head>
   <body>
-    <h1>ChatGPT Web Injector</h1>
-    <p>Options page placeholder (v0.1 Issue #2).</p>
+    <main class="container">
+      <h1>ChatGPT Web Injector</h1>
+      <p class="subtitle">Edit your default prompt template.</p>
+
+      <label for="template">Default template</label>
+      <textarea id="template" rows="14" spellcheck="false"></textarea>
+
+      <p class="variables">
+        Available variables: <code>{{selection}}</code>, <code>{{title}}</code>, <code>{{url}}</code>
+      </p>
+
+      <div class="actions">
+        <button id="save" type="button">Save</button>
+        <button id="reset" type="button">Reset to default</button>
+      </div>
+
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+
+    <script type="module" src="./options.js"></script>
   </body>
 </html>
