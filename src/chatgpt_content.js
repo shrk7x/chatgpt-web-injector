@@ -113,17 +113,23 @@ export async function runChatgptSendFlow(prompt, options = {}) {
     } else if (!sendButton) {
       lastReason = 'send_not_found';
     } else {
-      if ('value' in input) {
-        input.value = prompt;
-      } else {
-        input.textContent = prompt;
+      try {
+        // For textarea: use .value and trigger input/change events
+        if ('value' in input) {
+          input.value = prompt;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          // For contenteditable div: use execCommand to trigger React state updates
+          input.focus();
+          document.execCommand('selectAll', false);
+          document.execCommand('insertText', false, prompt);
+        }
+        sendButton.click();
+        return { ok: true, attempts: attempt };
+      } catch (error) {
+        lastReason = 'injection_error';
       }
-
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-      sendButton.click();
-
-      return { ok: true, attempts: attempt };
     }
 
     if (attempt < maxAttempts) {
