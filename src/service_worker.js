@@ -7,6 +7,9 @@ const MENU_ITEM_PREFIX = 'send-to-chatgpt-tpl-';
 const CHATGPT_URL = 'https://chatgpt.com/';
 const TAB_WAIT_TIMEOUT_MS = 15000;
 
+let isMenuRebuildRunning = false;
+let hasPendingMenuRebuild = false;
+
 function waitForTabComplete(tabId, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
@@ -52,7 +55,7 @@ async function sendWithTemplate(templateId, selectionText, tab) {
   console.log('[ChatGPT Web Injector] Runtime send result:', result?.result || result);
 }
 
-async function rebuildContextMenu() {
+async function rebuildContextMenuOnce() {
   await new Promise((resolve) => chrome.contextMenus.removeAll(resolve));
 
   const { templates, activeTemplateId } = await loadTemplates();
@@ -85,6 +88,24 @@ async function rebuildContextMenu() {
   }
 
   console.log('[ChatGPT Web Injector] Context menu rebuilt.');
+}
+
+async function rebuildContextMenu() {
+  if (isMenuRebuildRunning) {
+    hasPendingMenuRebuild = true;
+    return;
+  }
+
+  isMenuRebuildRunning = true;
+
+  try {
+    do {
+      hasPendingMenuRebuild = false;
+      await rebuildContextMenuOnce();
+    } while (hasPendingMenuRebuild);
+  } finally {
+    isMenuRebuildRunning = false;
+  }
 }
 
 chrome.runtime.onInstalled.addListener(() => {
