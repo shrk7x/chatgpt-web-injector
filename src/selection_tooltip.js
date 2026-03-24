@@ -27,7 +27,6 @@ function createTooltip(x, y) {
   const img = document.createElement('img');
   img.src = chrome.runtime.getURL('icons/icon32.png');
   img.alt = '';
-  img.setAttribute('aria-hidden', 'true');
   btn.appendChild(img);
 
   btn.addEventListener('mousedown', (e) => {
