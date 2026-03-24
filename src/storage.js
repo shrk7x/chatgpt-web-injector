@@ -5,7 +5,7 @@ const TEMPLATES_KEY = 'templates';
 const ACTIVE_ID_KEY = 'activeTemplateId';
 
 export function makeId() {
-  return `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  return `tpl_${crypto.randomUUID()}`;
 }
 
 function defaultTemplateEntry() {
@@ -21,10 +21,14 @@ export async function loadTemplates() {
   const data = await chrome.storage.sync.get([LEGACY_KEY, TEMPLATES_KEY, ACTIVE_ID_KEY]);
 
   if (data[TEMPLATES_KEY]) {
-    return {
-      templates: data[TEMPLATES_KEY],
-      activeTemplateId: data[ACTIVE_ID_KEY] || data[TEMPLATES_KEY][0]?.id || 'default',
-    };
+    const templates = data[TEMPLATES_KEY];
+    let activeId = data[ACTIVE_ID_KEY];
+
+    if (!activeId || !templates.some((t) => t.id === activeId)) {
+      activeId = templates[0]?.id ?? 'default';
+    }
+
+    return { templates, activeTemplateId: activeId };
   }
 
   // Migrate legacy single template

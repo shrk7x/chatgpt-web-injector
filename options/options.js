@@ -54,25 +54,22 @@ function renderList() {
     if (!isActive) {
       const setDefaultBtn = document.createElement('button');
       setDefaultBtn.type = 'button';
-      setDefaultBtn.className = 'btn-secondary btn-sm';
+      setDefaultBtn.className = 'btn-secondary btn-sm js-set-default';
       setDefaultBtn.textContent = 'Set default';
-      setDefaultBtn.addEventListener('click', () => onSetDefault(tpl.id));
       actions.appendChild(setDefaultBtn);
     }
 
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
-    editBtn.className = 'btn-secondary btn-sm';
+    editBtn.className = 'btn-secondary btn-sm js-edit';
     editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', () => openEditor(tpl));
     actions.appendChild(editBtn);
 
     if (state.templates.length > 1) {
       const deleteBtn = document.createElement('button');
       deleteBtn.type = 'button';
-      deleteBtn.className = 'btn-danger btn-sm';
+      deleteBtn.className = 'btn-danger btn-sm js-delete';
       deleteBtn.textContent = 'Delete';
-      deleteBtn.addEventListener('click', () => onDelete(tpl.id));
       actions.appendChild(deleteBtn);
     }
 
@@ -80,6 +77,35 @@ function renderList() {
     listEl.appendChild(li);
   }
 }
+
+// Single delegated listener for all template list actions
+listEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) {
+    return;
+  }
+
+  const item = e.target.closest('.template-item');
+  const id = item?.dataset.id;
+  if (!id) {
+    return;
+  }
+
+  if (btn.classList.contains('js-set-default')) {
+    onSetDefault(id).catch((err) => {
+      console.error('[ChatGPT Web Injector] Set default failed:', err);
+      setStatus('Failed to update default.');
+    });
+  } else if (btn.classList.contains('js-edit')) {
+    const tpl = state.templates.find((t) => t.id === id);
+    openEditor(tpl);
+  } else if (btn.classList.contains('js-delete')) {
+    onDelete(id).catch((err) => {
+      console.error('[ChatGPT Web Injector] Delete failed:', err);
+      setStatus('Delete failed. Please try again.');
+    });
+  }
+});
 
 async function persist() {
   await saveTemplates(state.templates, state.activeTemplateId);
