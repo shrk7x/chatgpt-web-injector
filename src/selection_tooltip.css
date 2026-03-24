@@ -6,7 +6,14 @@
   border-radius: 50%;
   overflow: hidden;
   border: none;
-  background: transparent;
+  background-color: #10a37f;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  background-size: 32px 32px;
+  background-position: center;
+  background-repeat: no-repeat;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -16,12 +23,12 @@
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
+#chatgpt-web-injector-tooltip::after {
+  content: 'G';
+  opacity: 0.9;
+}
+
 #chatgpt-web-injector-tooltip:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-#chatgpt-web-injector-tooltip img {
-  width: 32px;
-  height: 32px;
 }
