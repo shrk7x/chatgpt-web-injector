@@ -26,8 +26,6 @@ function createTooltip(x, y) {
 
   const img = document.createElement('img');
   img.src = chrome.runtime.getURL('icons/icon32.png');
-  img.width = 28;
-  img.height = 28;
   img.alt = '';
   img.setAttribute('aria-hidden', 'true');
   btn.appendChild(img);
