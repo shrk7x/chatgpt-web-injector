@@ -56,7 +56,7 @@ function createTooltip(x, y) {
     });
   });
 
-  document.body.appendChild(btn);
+  document.body?.appendChild(btn);
 }
 
 function getSelectionAnchorPosition() {
