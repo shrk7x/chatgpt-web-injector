@@ -24,9 +24,10 @@ function createTooltip(x, y) {
   btn.style.left = `${x}px`;
   btn.style.top = `${y}px`;
 
-  // Simple "send" arrow SVG icon
-  // Simple "send" arrow SVG icon
-  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+  const img = document.createElement('img');
+  img.src = chrome.runtime.getURL('icons/icon32.png');
+  img.alt = '';
+  btn.appendChild(img);
 
   btn.addEventListener('mousedown', (e) => {
     // Prevent the click from clearing the selection before we read it
@@ -55,7 +56,7 @@ function createTooltip(x, y) {
     });
   });
 
-  document.body.appendChild(btn);
+  document.body?.appendChild(btn);
 }
 
 function getSelectionAnchorPosition() {

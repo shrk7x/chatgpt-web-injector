@@ -1,11 +1,12 @@
 #chatgpt-web-injector-tooltip {
   position: fixed;
   z-index: 2147483646;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  overflow: hidden;
   border: none;
-  background: #10a37f;
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -18,4 +19,9 @@
 #chatgpt-web-injector-tooltip:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#chatgpt-web-injector-tooltip img {
+  width: 32px;
+  height: 32px;
 }
