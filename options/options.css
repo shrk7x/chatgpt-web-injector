@@ -20,20 +20,104 @@ h1 {
   font-size: 1.5rem;
 }
 
+h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
 .subtitle {
-  margin: 8px 0 20px;
+  margin: 8px 0 24px;
   color: #4b5563;
+}
+
+/* ---- Template list ---- */
+
+.templates-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.template-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.template-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.template-item.is-active {
+  border-color: #10a37f;
+  background: #f0fdf8;
+}
+
+.template-item__name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.template-item__badge {
+  font-size: 0.75rem;
+  color: #10a37f;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.template-item__actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ---- Editor ---- */
+
+.editor {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.editor.hidden {
+  display: none;
 }
 
 label {
   display: block;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  margin-top: 12px;
+}
+
+label:first-child {
+  margin-top: 0;
+}
+
+input[type='text'] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #f8fafc;
 }
 
 textarea {
   width: 100%;
-  min-height: 260px;
+  min-height: 220px;
   padding: 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -46,6 +130,7 @@ textarea {
 .variables {
   color: #374151;
   font-size: 0.9rem;
+  margin: 8px 0 0;
 }
 
 .actions {
@@ -54,19 +139,35 @@ textarea {
   margin-top: 14px;
 }
 
+/* ---- Buttons ---- */
+
 button {
   border: 1px solid #1d4ed8;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 7px 13px;
   background: #1d4ed8;
   color: #fff;
   cursor: pointer;
+  font-size: 0.9rem;
 }
 
-button#reset {
+button.btn-secondary {
   background: #fff;
   color: #1d4ed8;
 }
+
+button.btn-danger {
+  border-color: #dc2626;
+  background: #fff;
+  color: #dc2626;
+}
+
+button.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.82rem;
+}
+
+/* ---- Status ---- */
 
 #status {
   min-height: 20px;

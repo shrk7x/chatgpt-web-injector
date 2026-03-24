@@ -9,18 +9,30 @@
   <body>
     <main class="container">
       <h1>ChatGPT Web Injector</h1>
-      <p class="subtitle">Edit your default prompt template.</p>
+      <p class="subtitle">Manage your prompt templates. The active template is used by the floating button and as the default send action.</p>
 
-      <label for="template">Default template</label>
-      <textarea id="template" rows="14" spellcheck="false"></textarea>
+      <div class="templates-header">
+        <h2>Templates</h2>
+        <button id="add-template" type="button" class="btn-secondary">+ New template</button>
+      </div>
 
-      <p class="variables">
-        Available variables: <code>{{selection}}</code>, <code>{{title}}</code>, <code>{{url}}</code>
-      </p>
+      <ul id="template-list" class="template-list"></ul>
 
-      <div class="actions">
-        <button id="save" type="button">Save</button>
-        <button id="reset" type="button">Reset to default</button>
+      <div id="editor" class="editor hidden">
+        <label for="tpl-name">Name</label>
+        <input id="tpl-name" type="text" placeholder="e.g. Summarize" maxlength="40" />
+
+        <label for="tpl-body">Prompt template</label>
+        <textarea id="tpl-body" rows="12" spellcheck="false"></textarea>
+
+        <p class="variables">
+          Available variables: <code>{{selection}}</code>, <code>{{title}}</code>, <code>{{url}}</code>
+        </p>
+
+        <div class="actions">
+          <button id="save-tpl" type="button">Save</button>
+          <button id="cancel-tpl" type="button" class="btn-secondary">Cancel</button>
+        </div>
       </div>
 
       <p id="status" role="status" aria-live="polite"></p>
