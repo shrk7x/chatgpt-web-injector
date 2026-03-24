@@ -6,7 +6,11 @@
   border-radius: 50%;
   overflow: hidden;
   border: none;
-  background: transparent;
+  background-color: #10a37f;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
   background-size: 32px 32px;
   background-position: center;
   background-repeat: no-repeat;
@@ -17,6 +21,11 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   padding: 0;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+#chatgpt-web-injector-tooltip::after {
+  content: 'G';
+  opacity: 0.9;
 }
 
 #chatgpt-web-injector-tooltip:hover {

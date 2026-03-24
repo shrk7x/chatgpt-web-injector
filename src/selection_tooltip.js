@@ -4,6 +4,25 @@ const TOOLTIP_OFFSET = 6;
 const VIEWPORT_PADDING = 40;
 
 let showTimer = null;
+let lastPointerPosition = null;
+
+function getSelectedText() {
+  const activeElement = document.activeElement;
+  const canReadInputSelection = activeElement &&
+    (activeElement instanceof HTMLTextAreaElement ||
+      (activeElement instanceof HTMLInputElement && typeof activeElement.selectionStart === 'number'));
+
+  if (canReadInputSelection) {
+    const start = activeElement.selectionStart;
+    const end = activeElement.selectionEnd;
+    if (start !== null && end !== null && end > start) {
+      return activeElement.value.slice(start, end).trim();
+    }
+  }
+
+  const selection = window.getSelection();
+  return selection ? selection.toString().trim() : '';
+}
 
 function removeTooltip() {
   const existing = document.getElementById(TOOLTIP_ID);
@@ -58,14 +77,24 @@ function createTooltip(x, y) {
 function getSelectionAnchorPosition() {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) {
-    return null;
+    if (!lastPointerPosition) {
+      return null;
+    }
+    const x = Math.min(Math.max(lastPointerPosition.x + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerWidth - VIEWPORT_PADDING);
+    const y = Math.min(Math.max(lastPointerPosition.y + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerHeight - VIEWPORT_PADDING);
+    return { x, y };
   }
 
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
 
   if (rect.width === 0 && rect.height === 0) {
-    return null;
+    if (!lastPointerPosition) {
+      return null;
+    }
+    const x = Math.min(Math.max(lastPointerPosition.x + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerWidth - VIEWPORT_PADDING);
+    const y = Math.min(Math.max(lastPointerPosition.y + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerHeight - VIEWPORT_PADDING);
+    return { x, y };
   }
 
   // Position just below and to the right of the selection end, clamped to viewport
@@ -79,8 +108,7 @@ function processSelection() {
   clearTimeout(showTimer);
 
   showTimer = setTimeout(() => {
-    const selection = window.getSelection();
-    const text = selection ? selection.toString().trim() : '';
+    const text = getSelectedText();
 
     if (!text) {
       removeTooltip();
@@ -107,6 +135,11 @@ function handleMouseDown(e) {
   removeTooltip();
 }
 
-document.addEventListener('mouseup', processSelection);
+function handleMouseUp(e) {
+  lastPointerPosition = { x: e.clientX, y: e.clientY };
+  processSelection();
+}
+
+document.addEventListener('mouseup', handleMouseUp);
 document.addEventListener('selectionchange', processSelection);
 document.addEventListener('mousedown', handleMouseDown);
