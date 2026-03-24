@@ -4,11 +4,19 @@
   "description": "Send selected webpage content to ChatGPT with reusable prompt templates.",
   "version": "0.1.0",
   "permissions": ["contextMenus", "storage", "tabs", "scripting", "activeTab"],
-  "host_permissions": ["https://chatgpt.com/*"],
+  "host_permissions": ["https://chatgpt.com/*", "<all_urls>"],
   "background": {
     "service_worker": "src/service_worker.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/selection_tooltip.js"],
+      "css": ["src/selection_tooltip.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "options_page": "options/options.html",
   "action": {
     "default_title": "ChatGPT Web Injector"

@@ -77,3 +77,18 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     console.error('[ChatGPT Web Injector] Send flow failed:', error);
   }
 });
+
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message?.type !== 'SELECTION_SEND') {
+    return;
+  }
+
+  const { selectionText = '', pageTitle = '', pageUrl = '' } = message.payload ?? {};
+
+  handleSendToChatgpt(
+    { selectionText },
+    { title: pageTitle, url: pageUrl, id: sender.tab?.id },
+  ).catch((error) => {
+    console.error('[ChatGPT Web Injector] Selection send flow failed:', error);
+  });
+});
