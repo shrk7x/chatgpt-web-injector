@@ -7,6 +7,9 @@
   overflow: hidden;
   border: none;
   background: transparent;
+  background-size: 32px 32px;
+  background-position: center;
+  background-repeat: no-repeat;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -19,9 +22,4 @@
 #chatgpt-web-injector-tooltip:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-#chatgpt-web-injector-tooltip img {
-  width: 32px;
-  height: 32px;
 }

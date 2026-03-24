@@ -23,11 +23,7 @@ function createTooltip(x, y) {
 
   btn.style.left = `${x}px`;
   btn.style.top = `${y}px`;
-
-  const img = document.createElement('img');
-  img.src = chrome.runtime.getURL('icons/icon32.png');
-  img.alt = '';
-  btn.appendChild(img);
+  btn.style.backgroundImage = `url('${chrome.runtime.getURL('icons/icon32.png')}')`;
 
   btn.addEventListener('mousedown', (e) => {
     // Prevent the click from clearing the selection before we read it
