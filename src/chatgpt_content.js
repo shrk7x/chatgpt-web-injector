@@ -135,7 +135,19 @@ export async function runChatgptSendFlow(prompt, options = {}) {
         setTimeout(resolve, 100);
       });
 
-      sendButton.click();
+      // Prefer clicking the send button; fall back to Enter key if it is still disabled
+      if (!sendButton.disabled) {
+        sendButton.click();
+      } else {
+        input.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true,
+          cancelable: true,
+        }));
+      }
       return { ok: true, attempts: attempt };
     }
 
