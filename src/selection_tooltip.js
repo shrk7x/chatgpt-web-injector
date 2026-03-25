@@ -106,6 +106,30 @@ function createTooltip(x, y) {
   }
 }
 
+function processSelection() {
+  const text = getSelectedText();
+  log('processSelection called, selected text length:', text.length);
+
+  if (!text) {
+    removeTooltip();
+    return;
+  }
+
+  if (!lastPointerPosition) {
+    log('No pointer position recorded, skipping tooltip');
+    return;
+  }
+
+  clearTimeout(showTimer);
+  showTimer = setTimeout(() => {
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    const x = Math.min(lastPointerPosition.x + TOOLTIP_MOUSE_OFFSET, vw - VIEWPORT_PADDING);
+    const y = Math.min(lastPointerPosition.y + TOOLTIP_MOUSE_OFFSET, vh - VIEWPORT_PADDING);
+    createTooltip(x, y);
+  }, SHOW_DELAY_MS);
+}
+
 function handleMouseDown(e) {
   // If the click is on the tooltip itself, do nothing (mousedown handler on btn handles it)
   const clickedInsideTooltip = e.target?.closest?.(`#${TOOLTIP_ID}`);
