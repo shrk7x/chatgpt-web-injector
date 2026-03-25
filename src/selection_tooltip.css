@@ -8,7 +8,7 @@
   border: none;
   background-color: #10a37f;
   color: #ffffff;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -21,7 +21,7 @@
 }
 
 #chatgpt-web-injector-tooltip::after {
-  content: 'G';
+  content: 'BOT';
   opacity: 0.9;
 }
 
