@@ -6,6 +6,7 @@ const DEBUG = false;
 
 let showTimer = null;
 let lastPointerPosition = null;
+let suppressNextSelection = false;
 
 function log(...args) {
   if (DEBUG) {
@@ -66,6 +67,9 @@ function createTooltip(x, y) {
     e.stopPropagation();
     e.preventDefault();
 
+    // Suppress the selectionchange that fires when the tooltip is removed
+    suppressNextSelection = true;
+
     // Read selection before removing the tooltip, so selectionchange
     // triggered by DOM removal doesn't clear it first.
     const selection = window.getSelection();
@@ -79,24 +83,21 @@ function createTooltip(x, y) {
 
     if (!chrome?.runtime?.sendMessage) {
       console.warn('[ChatGPT Web Injector] Extension context unavailable — please refresh this page.');
-      // Show a brief inline notice on the button itself so the user knows to refresh
-      const tooltipBtn = document.getElementById(TOOLTIP_ID);
-      if (tooltipBtn) {
-        tooltipBtn.title = 'Extension reloaded — please refresh this page';
-        tooltipBtn.textContent = '↺';
-        tooltipBtn.style.fontSize = '20px';
-      }
       return;
     }
 
-    chrome.runtime.sendMessage({
-      type: 'SELECTION_SEND',
-      payload: {
-        selectionText,
-        pageTitle: document.title,
-        pageUrl: window.location.href,
-      },
-    });
+    try {
+      chrome.runtime.sendMessage({
+        type: 'SELECTION_SEND',
+        payload: {
+          selectionText,
+          pageTitle: document.title,
+          pageUrl: window.location.href,
+        },
+      });
+    } catch (err) {
+      console.warn('[ChatGPT Web Injector] Failed to send message — please refresh this page.', err.message);
+    }
   });
 
   const appendResult = document.body?.appendChild(btn);
@@ -117,6 +118,11 @@ function createTooltip(x, y) {
 }
 
 function processSelection() {
+  if (suppressNextSelection) {
+    suppressNextSelection = false;
+    return;
+  }
+
   const text = getSelectedText();
   log('processSelection called, selected text length:', text.length);
 
