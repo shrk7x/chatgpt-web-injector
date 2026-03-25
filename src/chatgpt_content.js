@@ -5,9 +5,11 @@ export async function runChatgptSendFlow(prompt, options = {}) {
 
   const inputSelectors = ['textarea', "[contenteditable='true']", "div[role='textbox']"];
   const sendSelectors = [
+    "button[data-testid='send-button']",
     "button[data-testid*='send']",
     "button[aria-label*='Send']",
     "button[aria-label*='send']",
+    "button[aria-label*='发送']",
     "button[type='submit']",
   ];
 
@@ -19,6 +21,18 @@ export async function runChatgptSendFlow(prompt, options = {}) {
       }
     }
     return null;
+  }
+
+  // Find send button including those that may currently be disabled
+  function findSendButton() {
+    // Try enabled buttons first
+    const btn = findFirst(sendSelectors);
+    if (btn) return btn;
+    // Fall back: any button near the input that looks like a send button
+    const allButtons = Array.from(document.querySelectorAll('button'));
+    return allButtons.find(b =>
+      /send|submit|发送/i.test(b.getAttribute('aria-label') || b.getAttribute('data-testid') || '')
+    ) || null;
   }
 
   function showFallbackModal(text, reason) {
@@ -106,7 +120,7 @@ export async function runChatgptSendFlow(prompt, options = {}) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const input = findFirst(inputSelectors);
-    const sendButton = findFirst(sendSelectors);
+    const sendButton = findSendButton();
 
     if (!input) {
       lastReason = 'input_not_found';
@@ -130,15 +144,16 @@ export async function runChatgptSendFlow(prompt, options = {}) {
         continue;
       }
 
-      // Brief pause to let React/framework pick up the injected text
-      await new Promise((resolve) => {
-        setTimeout(resolve, 100);
-      });
+      // Wait for React to process the injected text and enable the send button
+      await new Promise((resolve) => { setTimeout(resolve, 300); });
 
-      // Prefer clicking the send button; fall back to Enter key if it is still disabled
-      if (!sendButton.disabled) {
-        sendButton.click();
+      // Re-query send button after wait — it may have become enabled
+      const sendButtonReady = findSendButton();
+
+      if (sendButtonReady && !sendButtonReady.disabled) {
+        sendButtonReady.click();
       } else {
+        // Fallback: dispatch Enter keydown on the input
         input.dispatchEvent(new KeyboardEvent('keydown', {
           key: 'Enter',
           code: 'Enter',
@@ -150,9 +165,7 @@ export async function runChatgptSendFlow(prompt, options = {}) {
     }
 
     if (attempt < maxAttempts) {
-      await new Promise((resolve) => {
-        setTimeout(resolve, intervalMs);
-      });
+      await new Promise((resolve) => { setTimeout(resolve, intervalMs); });
     }
   }
 
