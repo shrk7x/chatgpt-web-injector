@@ -62,20 +62,30 @@ function createTooltip(x, y) {
     class: btn.className,
   });
 
-  btn.addEventListener('mousedown', (e) => {
-    // Prevent the click from clearing the selection before we read it
-    e.preventDefault();
-  });
-
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
+    e.preventDefault();
 
+    // Read selection before removing the tooltip, so selectionchange
+    // triggered by DOM removal doesn't clear it first.
     const selection = window.getSelection();
     const selectionText = selection ? selection.toString().trim() : '';
 
     removeTooltip();
 
     if (!selectionText) {
+      return;
+    }
+
+    if (!chrome?.runtime?.sendMessage) {
+      console.warn('[ChatGPT Web Injector] Extension context unavailable — please refresh this page.');
+      // Show a brief inline notice on the button itself so the user knows to refresh
+      const tooltipBtn = document.getElementById(TOOLTIP_ID);
+      if (tooltipBtn) {
+        tooltipBtn.title = 'Extension reloaded — please refresh this page';
+        tooltipBtn.textContent = '↺';
+        tooltipBtn.style.fontSize = '20px';
+      }
       return;
     }
 
