@@ -142,8 +142,6 @@ export async function runChatgptSendFlow(prompt, options = {}) {
         input.dispatchEvent(new KeyboardEvent('keydown', {
           key: 'Enter',
           code: 'Enter',
-          keyCode: 13,
-          which: 13,
           bubbles: true,
           cancelable: true,
         }));
