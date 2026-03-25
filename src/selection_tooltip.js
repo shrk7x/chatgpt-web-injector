@@ -1,10 +1,17 @@
 const TOOLTIP_ID = 'chatgpt-web-injector-tooltip';
 const SHOW_DELAY_MS = 100;
-const TOOLTIP_OFFSET = 6;
+const TOOLTIP_MOUSE_OFFSET = 12;
 const VIEWPORT_PADDING = 40;
+const DEBUG = false;
 
 let showTimer = null;
 let lastPointerPosition = null;
+
+function log(...args) {
+  if (DEBUG) {
+    console.log('[ChatGPT Web Injector - Tooltip]', ...args);
+  }
+}
 
 function getSelectedText() {
   const activeElement = document.activeElement;
@@ -27,11 +34,13 @@ function getSelectedText() {
 function removeTooltip() {
   const existing = document.getElementById(TOOLTIP_ID);
   if (existing) {
+    log('Removing existing tooltip');
     existing.remove();
   }
 }
 
 function createTooltip(x, y) {
+  log(`Creating tooltip at (${x}, ${y})`);
   removeTooltip();
 
   const btn = document.createElement('button');
@@ -42,22 +51,41 @@ function createTooltip(x, y) {
 
   btn.style.left = `${x}px`;
   btn.style.top = `${y}px`;
-  btn.style.backgroundImage = `url('${chrome.runtime.getURL('icons/icon32.png')}')`;
 
-  btn.addEventListener('mousedown', (e) => {
-    // Prevent the click from clearing the selection before we read it
-    e.preventDefault();
+  log('Button created with styles:', {
+    position: 'fixed',
+    left: `${x}px`,
+    top: `${y}px`,
+    width: '40px',
+    height: '40px',
+    id: TOOLTIP_ID,
+    class: btn.className,
   });
 
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
+    e.preventDefault();
 
+    // Read selection before removing the tooltip, so selectionchange
+    // triggered by DOM removal doesn't clear it first.
     const selection = window.getSelection();
     const selectionText = selection ? selection.toString().trim() : '';
 
     removeTooltip();
 
     if (!selectionText) {
+      return;
+    }
+
+    if (!chrome?.runtime?.sendMessage) {
+      console.warn('[ChatGPT Web Injector] Extension context unavailable — please refresh this page.');
+      // Show a brief inline notice on the button itself so the user knows to refresh
+      const tooltipBtn = document.getElementById(TOOLTIP_ID);
+      if (tooltipBtn) {
+        tooltipBtn.title = 'Extension reloaded — please refresh this page';
+        tooltipBtn.textContent = '↺';
+        tooltipBtn.style.fontSize = '20px';
+      }
       return;
     }
 
@@ -71,57 +99,44 @@ function createTooltip(x, y) {
     });
   });
 
-  document.body?.appendChild(btn);
-}
-
-function getSelectionAnchorPosition() {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) {
-    if (!lastPointerPosition) {
-      return null;
-    }
-    const x = Math.min(Math.max(lastPointerPosition.x + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerWidth - VIEWPORT_PADDING);
-    const y = Math.min(Math.max(lastPointerPosition.y + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerHeight - VIEWPORT_PADDING);
-    return { x, y };
+  const appendResult = document.body?.appendChild(btn);
+  if (appendResult) {
+    log('Button successfully appended to DOM');
+    const computedStyle = window.getComputedStyle(btn);
+    log('Computed styles:', {
+      display: computedStyle.display,
+      position: computedStyle.position,
+      zIndex: computedStyle.zIndex,
+      backgroundColor: computedStyle.backgroundColor,
+      width: computedStyle.width,
+      height: computedStyle.height,
+    });
+  } else {
+    log('WARNING: Failed to append button to DOM');
   }
-
-  const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
-
-  if (rect.width === 0 && rect.height === 0) {
-    if (!lastPointerPosition) {
-      return null;
-    }
-    const x = Math.min(Math.max(lastPointerPosition.x + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerWidth - VIEWPORT_PADDING);
-    const y = Math.min(Math.max(lastPointerPosition.y + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerHeight - VIEWPORT_PADDING);
-    return { x, y };
-  }
-
-  // Position just below and to the right of the selection end, clamped to viewport
-  const x = Math.min(Math.max(rect.right + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerWidth - VIEWPORT_PADDING);
-  const y = Math.min(Math.max(rect.bottom + TOOLTIP_OFFSET, TOOLTIP_OFFSET), window.innerHeight - VIEWPORT_PADDING);
-
-  return { x, y };
 }
 
 function processSelection() {
+  const text = getSelectedText();
+  log('processSelection called, selected text length:', text.length);
+
+  if (!text) {
+    removeTooltip();
+    return;
+  }
+
+  if (!lastPointerPosition) {
+    log('No pointer position recorded, skipping tooltip');
+    return;
+  }
+
   clearTimeout(showTimer);
-
   showTimer = setTimeout(() => {
-    const text = getSelectedText();
-
-    if (!text) {
-      removeTooltip();
-      return;
-    }
-
-    const pos = getSelectionAnchorPosition();
-    if (!pos) {
-      removeTooltip();
-      return;
-    }
-
-    createTooltip(pos.x, pos.y);
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    const x = Math.min(lastPointerPosition.x + TOOLTIP_MOUSE_OFFSET, vw - VIEWPORT_PADDING);
+    const y = Math.min(lastPointerPosition.y + TOOLTIP_MOUSE_OFFSET, vh - VIEWPORT_PADDING);
+    createTooltip(x, y);
   }, SHOW_DELAY_MS);
 }
 
@@ -131,15 +146,23 @@ function handleMouseDown(e) {
   if (clickedInsideTooltip) {
     return;
   }
+  log('Mouse down detected, clearing pending tooltip');
   clearTimeout(showTimer);
   removeTooltip();
 }
 
 function handleMouseUp(e) {
+  log('Mouse up detected at', { x: e.clientX, y: e.clientY });
   lastPointerPosition = { x: e.clientX, y: e.clientY };
   processSelection();
 }
 
-document.addEventListener('mouseup', handleMouseUp);
-document.addEventListener('selectionchange', processSelection);
-document.addEventListener('mousedown', handleMouseDown);
+log('Content script loaded, registering event listeners');
+document.addEventListener('mouseup', handleMouseUp, true);
+document.addEventListener('selectionchange', processSelection, true);
+document.addEventListener('mousedown', handleMouseDown, true);
+document.addEventListener('keyup', () => {
+  log('Key up detected');
+  processSelection();
+}, true);
+log('Event listeners registered (with capture phase)');

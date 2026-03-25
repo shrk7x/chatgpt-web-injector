@@ -113,16 +113,29 @@ export async function runChatgptSendFlow(prompt, options = {}) {
     } else if (!sendButton) {
       lastReason = 'send_not_found';
     } else {
-      if ('value' in input) {
-        input.value = prompt;
-      } else {
-        input.textContent = prompt;
+      try {
+        if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+          input.focus();
+          input.value = prompt;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          // contenteditable div (ChatGPT's current input)
+          input.focus();
+          document.execCommand('selectAll', false, null);
+          document.execCommand('insertText', false, prompt);
+        }
+      } catch (err) {
+        lastReason = `inject_error: ${err.message}`;
+        continue;
       }
 
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-      sendButton.click();
+      // Brief pause to let React/framework pick up the injected text
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
 
+      sendButton.click();
       return { ok: true, attempts: attempt };
     }
 
