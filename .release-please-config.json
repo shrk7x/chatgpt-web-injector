@@ -10,10 +10,5 @@
         "manifest.json"
       ]
     }
-  },
-  "plugins": [
-    {
-      "type": "node-workspace"
-    }
-  ]
+  }
 }

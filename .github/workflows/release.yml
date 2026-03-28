@@ -13,7 +13,6 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
-    id: release-please
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -35,8 +34,6 @@ jobs:
             options/ \
             popup/ \
             icons/ \
-            LICENSE \
-            README.md \
             -x "*.DS_Store*"
           echo "ZIP_PATH=$ZIP_NAME" >> $GITHUB_ENV
 
