@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout code
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v4
+
+      - name: Create extension zip
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          VERSION="${{ steps.release.outputs.tag_name }}"
+          ZIP_NAME="chatgpt-web-injector-${VERSION}.zip"
+          zip -r "$ZIP_NAME" \
+            manifest.json \
+            src/ \
+            options/ \
+            popup/ \
+            icons/ \
+            -x "*.DS_Store*"
+          echo "ZIP_PATH=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Upload Release Asset
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ steps.release.outputs.tag_name }} ${{ env.ZIP_PATH }}

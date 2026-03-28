@@ -30,6 +30,14 @@ package.json                - Test runner only (node --test), devDependency: jsd
 - **Open Extensions page (macOS):** `open -a "Google Chrome" chrome://extensions`
 - No lint command exists. No formatter config exists.
 
+## Release Process
+- This project uses **release-please** to automate releases.
+- **When to release:** Merging a feature PR to `main` updates a "Release PR". Merging the Release PR triggers the full release.
+- **Changelog:** Automatically generated from commit messages (use Conventional Commits like `feat:`, `fix:`).
+- **Artifacts:** A `.zip` file of the extension is automatically generated and attached to each GitHub Release.
+- **Version Bumping:** `manifest.json` and `package.json` are automatically updated by the release workflow.
+- **Manual Publish:** Currently, publishing to the Chrome Web Store is done manually using the generated zip artifact.
+
 ## Manual Verification Checklist
 After any code change, reload the unpacked extension then verify:
 1. Extension loads with no errors in `chrome://extensions`.

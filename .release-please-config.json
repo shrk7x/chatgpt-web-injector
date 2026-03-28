@@ -1,0 +1,17 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "chatgpt-web-injector",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "manifest.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}
