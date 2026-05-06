@@ -1,5 +1,12 @@
 import { DEFAULT_TEMPLATE } from '../src/template.js';
-import { loadTemplates, saveTemplates, makeId } from '../src/storage.js';
+import {
+  loadTemplates,
+  loadYoutubeSummaryTemplate,
+  makeId,
+  resetYoutubeSummaryTemplate,
+  saveTemplates,
+  saveYoutubeSummaryTemplate,
+} from '../src/storage.js';
 
 const listEl = document.getElementById('template-list');
 const editorEl = document.getElementById('editor');
@@ -8,6 +15,9 @@ const bodyInput = document.getElementById('tpl-body');
 const saveTplBtn = document.getElementById('save-tpl');
 const cancelTplBtn = document.getElementById('cancel-tpl');
 const addTplBtn = document.getElementById('add-template');
+const youtubeBodyInput = document.getElementById('youtube-tpl-body');
+const saveYoutubeTplBtn = document.getElementById('save-youtube-tpl');
+const resetYoutubeTplBtn = document.getElementById('reset-youtube-tpl');
 const statusEl = document.getElementById('status');
 
 let state = { templates: [], activeTemplateId: '' };
@@ -169,8 +179,28 @@ saveTplBtn.addEventListener('click', () => {
 
 cancelTplBtn.addEventListener('click', closeEditor);
 
+saveYoutubeTplBtn.addEventListener('click', () => {
+  saveYoutubeSummaryTemplate(youtubeBodyInput.value).then(() => {
+    setStatus('YouTube Summary template saved.');
+  }).catch((err) => {
+    console.error('[ChatGPT Web Injector] YouTube template save failed:', err);
+    setStatus('Save failed. Please try again.');
+  });
+});
+
+resetYoutubeTplBtn.addEventListener('click', () => {
+  resetYoutubeSummaryTemplate().then((template) => {
+    youtubeBodyInput.value = template;
+    setStatus('YouTube Summary template reset.');
+  }).catch((err) => {
+    console.error('[ChatGPT Web Injector] YouTube template reset failed:', err);
+    setStatus('Reset failed. Please try again.');
+  });
+});
+
 async function init() {
   state = await loadTemplates();
+  youtubeBodyInput.value = await loadYoutubeSummaryTemplate();
   renderList();
 }
 

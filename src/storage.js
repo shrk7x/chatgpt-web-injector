@@ -3,6 +3,30 @@ import { DEFAULT_TEMPLATE, getEffectiveTemplate } from './template.js';
 const LEGACY_KEY = 'defaultTemplate';
 const TEMPLATES_KEY = 'templates';
 const ACTIVE_ID_KEY = 'activeTemplateId';
+const YOUTUBE_SUMMARY_TEMPLATE_KEY = 'youtubeSummaryTemplate';
+
+export const DEFAULT_YOUTUBE_SUMMARY_TEMPLATE = `You are a precise video summary assistant.
+
+Video title: {{title}}
+Video URL: {{url}}
+
+Transcript:
+{{transcript}}
+
+Please provide:
+1) Concise overall summary
+2) Key points
+3) Important arguments or claims
+4) Actionable takeaways
+5) Notable timestamps if useful`;
+
+function getEffectiveYoutubeSummaryTemplate(template) {
+  if (typeof template !== 'string') {
+    return DEFAULT_YOUTUBE_SUMMARY_TEMPLATE;
+  }
+
+  return template.trim() ? template : DEFAULT_YOUTUBE_SUMMARY_TEMPLATE;
+}
 
 export function makeId() {
   return `tpl_${crypto.randomUUID()}`;
@@ -79,4 +103,19 @@ export async function saveTemplate(body) {
 export async function resetTemplate() {
   await saveTemplate(DEFAULT_TEMPLATE);
   return DEFAULT_TEMPLATE;
+}
+
+export async function loadYoutubeSummaryTemplate() {
+  const data = await chrome.storage.sync.get([YOUTUBE_SUMMARY_TEMPLATE_KEY]);
+  return getEffectiveYoutubeSummaryTemplate(data[YOUTUBE_SUMMARY_TEMPLATE_KEY]);
+}
+
+export async function saveYoutubeSummaryTemplate(body) {
+  const template = getEffectiveYoutubeSummaryTemplate(body);
+  await chrome.storage.sync.set({ [YOUTUBE_SUMMARY_TEMPLATE_KEY]: template });
+}
+
+export async function resetYoutubeSummaryTemplate() {
+  await saveYoutubeSummaryTemplate(DEFAULT_YOUTUBE_SUMMARY_TEMPLATE);
+  return DEFAULT_YOUTUBE_SUMMARY_TEMPLATE;
 }

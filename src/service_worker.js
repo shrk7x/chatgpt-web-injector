@@ -1,5 +1,5 @@
 import { runChatgptSendFlow } from './chatgpt_content.js';
-import { loadTemplates, loadTemplateById } from './storage.js';
+import { loadTemplates, loadTemplateById, loadYoutubeSummaryTemplate } from './storage.js';
 import { renderTemplate } from './template.js';
 
 const MENU_ID = 'send-to-chatgpt';
@@ -42,7 +42,10 @@ async function sendWithTemplate(templateId, selectionText, tab) {
 
   const template = await loadTemplateById(templateId);
   const prompt = renderTemplate(template, payload);
+  await sendPromptToChatgpt(prompt);
+}
 
+async function sendPromptToChatgpt(prompt) {
   const targetTab = await chrome.tabs.create({ url: CHATGPT_URL, active: true });
   await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
 
@@ -53,6 +56,17 @@ async function sendWithTemplate(templateId, selectionText, tab) {
   });
 
   console.log('[ChatGPT Web Injector] Runtime send result:', result?.result || result);
+}
+
+async function sendYoutubeSummary(payload) {
+  const template = await loadYoutubeSummaryTemplate();
+  const prompt = renderTemplate(template, {
+    title: payload?.title || '',
+    url: payload?.url || '',
+    transcript: payload?.transcript || '',
+  });
+
+  await sendPromptToChatgpt(prompt);
 }
 
 async function rebuildContextMenuOnce() {
@@ -139,6 +153,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message?.type === 'YOUTUBE_SUMMARY_SEND') {
+    sendYoutubeSummary(message.payload).catch((error) => {
+      console.error('[ChatGPT Web Injector] YouTube summary send flow failed:', error);
+    });
+    return;
+  }
+
   if (message?.type !== 'SELECTION_SEND') {
     return;
   }

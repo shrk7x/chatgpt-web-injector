@@ -11,6 +11,12 @@
   },
   "content_scripts": [
     {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/youtube_summary.js"],
+      "css": ["src/youtube_summary.css"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["<all_urls>"],
       "js": ["src/selection_tooltip.js"],
       "css": ["src/selection_tooltip.css"],
