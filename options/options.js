@@ -202,6 +202,11 @@ async function init() {
   state = await loadTemplates();
   youtubeBodyInput.value = await loadYoutubeSummaryTemplate();
   renderList();
+
+  if (window.location.hash === '#youtube-summary-template') {
+    document.getElementById('youtube-summary-template')?.scrollIntoView({ block: 'start' });
+    youtubeBodyInput.focus();
+  }
 }
 
 init().catch((err) => {
