@@ -6,6 +6,8 @@ const BUTTON_RETRY_MS = 750;
 const STATUS_TIMEOUT_MS = 2500;
 const MOUNT_DEBOUNCE_MS = 150;
 const OBSERVER_RETRY_MS = 500;
+const TRANSCRIPT_DOM_WAIT_MS = 3000;
+const TRANSCRIPT_DOM_POLL_MS = 200;
 const DEBUG = false;
 
 let lastUrl = '';
@@ -149,6 +151,75 @@ function getTranscriptParamsFromPageScripts() {
   return '';
 }
 
+function normalizeTimestamp(timestamp) {
+  const parts = timestamp.trim().split(':');
+  if (parts.length >= 2) {
+    return parts.slice(-2).map((part) => part.padStart(2, '0')).join(':');
+  }
+  return '00:00';
+}
+
+function readTranscriptFromDom() {
+  const segmentNodes = Array.from(document.querySelectorAll('ytd-transcript-segment-renderer'));
+  const lines = [];
+
+  for (const segment of segmentNodes) {
+    const timestamp = segment.querySelector('.segment-timestamp')?.textContent?.trim() || '';
+    const text = segment.querySelector('.segment-text')?.textContent?.trim() || '';
+
+    if (text) {
+      lines.push(`[${normalizeTimestamp(timestamp)}] ${text}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function findTranscriptButton() {
+  const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿/i;
+  const buttons = Array.from(document.querySelectorAll('button'));
+
+  return buttons.find((button) => {
+    const label = [
+      button.getAttribute('aria-label') || '',
+      button.textContent || '',
+    ].join(' ');
+    return labelPattern.test(label);
+  }) || null;
+}
+
+async function waitForTranscriptDom() {
+  const startedAt = Date.now();
+  let transcript = readTranscriptFromDom();
+
+  while (!transcript && Date.now() - startedAt < TRANSCRIPT_DOM_WAIT_MS) {
+    await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
+    transcript = readTranscriptFromDom();
+  }
+
+  return transcript;
+}
+
+async function fetchTranscriptFromDom() {
+  const visibleTranscript = readTranscriptFromDom();
+  if (visibleTranscript) {
+    return visibleTranscript;
+  }
+
+  const transcriptButton = findTranscriptButton();
+  if (!transcriptButton) {
+    throw new Error('transcript_dom_button_not_found');
+  }
+
+  transcriptButton.click();
+  const openedTranscript = await waitForTranscriptDom();
+  if (!openedTranscript) {
+    throw new Error('transcript_dom_empty');
+  }
+
+  return openedTranscript;
+}
+
 async function fetchCurrentPlayerResponse() {
   const response = await fetch(window.location.href, { credentials: 'include' });
   if (!response.ok) {
@@ -167,7 +238,7 @@ async function fetchInnertubeTranscript() {
   const params = getTranscriptParamsFromPageScripts();
 
   if (!key || !clientVersion || !params) {
-    return '';
+    throw new Error('innertube_missing_config');
   }
 
   const response = await fetch(`https://www.youtube.com/youtubei/v1/get_transcript?key=${key}`, {
@@ -191,11 +262,16 @@ async function fetchInnertubeTranscript() {
   });
 
   if (!response.ok) {
-    return '';
+    throw new Error(`innertube_http_${response.status}`);
   }
 
-  return window.ChatgptWebInjectorYoutubeTranscript
+  const transcript = window.ChatgptWebInjectorYoutubeTranscript
     .parseInnertubeTranscriptResponse(await response.json());
+  if (!transcript) {
+    throw new Error('innertube_empty_response');
+  }
+
+  return transcript;
 }
 
 function getCaptionTracks(playerResponse) {
@@ -245,6 +321,7 @@ async function getTranscript() {
     throw new Error('transcript_helpers_unavailable');
   }
 
+  const failures = [];
   const playerResponse = getPlayerResponseFromPageScripts() ||
     await fetchCurrentPlayerResponse().catch(() => null);
   const tracks = getCaptionTracks(playerResponse);
@@ -253,21 +330,37 @@ async function getTranscript() {
   });
 
   if (!track) {
-    throw new Error('no_caption_track');
+    failures.push('caption_track_missing');
+  } else {
+    try {
+      const response = await fetch(transcriptHelpers.buildCaptionUrl(track.baseUrl), { credentials: 'include' });
+      if (!response.ok) {
+        failures.push(`timedtext_http_${response.status}`);
+      } else {
+        const transcript = transcriptHelpers.parseTranscript(await response.text());
+        if (transcript) {
+          return transcript;
+        }
+        failures.push('timedtext_empty');
+      }
+    } catch (error) {
+      failures.push(error?.message ? `timedtext_error_${error.message}` : 'timedtext_error');
+    }
   }
 
-  const response = await fetch(transcriptHelpers.buildCaptionUrl(track.baseUrl), { credentials: 'include' });
-  if (!response.ok) {
-    throw new Error('caption_fetch_failed');
+  try {
+    return await fetchInnertubeTranscript();
+  } catch (error) {
+    failures.push(error?.message || 'innertube_error');
   }
 
-  const transcript = transcriptHelpers.parseTranscript(await response.text());
-  const fallbackTranscript = transcript || await fetchInnertubeTranscript();
-  if (!fallbackTranscript) {
-    throw new Error('empty_transcript');
+  try {
+    return await fetchTranscriptFromDom();
+  } catch (error) {
+    failures.push(error?.message || 'transcript_dom_error');
   }
 
-  return fallbackTranscript;
+  throw new Error(`empty_transcript: ${failures.join(', ')}`);
 }
 
 async function sendYoutubeSummary() {
