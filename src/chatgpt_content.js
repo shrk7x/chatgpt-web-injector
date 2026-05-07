@@ -1,6 +1,7 @@
 export async function runChatgptSendFlow(prompt, options = {}) {
   const maxAttempts = Number.isFinite(options.maxAttempts) ? options.maxAttempts : 20;
   const intervalMs = Number.isFinite(options.intervalMs) ? options.intervalMs : 250;
+  const preferTemporaryChat = options.preferTemporaryChat === true;
   const fallbackId = 'chatgpt-web-injector-fallback';
 
   const inputSelectors = ['textarea', "[contenteditable='true']", "div[role='textbox']"];
@@ -33,6 +34,34 @@ export async function runChatgptSendFlow(prompt, options = {}) {
     return allButtons.find(b =>
       /send|submit|发送/i.test(b.getAttribute('aria-label') || b.getAttribute('data-testid') || '')
     ) || null;
+  }
+
+  function isTemporaryChatControlActive(control) {
+    return control.getAttribute('aria-pressed') === 'true' ||
+      control.getAttribute('aria-checked') === 'true' ||
+      control.getAttribute('data-state') === 'checked';
+  }
+
+  async function enableTemporaryChat() {
+    const labelPattern = /temporary chat|temporary|临时|臨時|暫時/i;
+    const controls = Array.from(document.querySelectorAll('button, [role="button"], a'));
+    const control = controls.find((candidate) => {
+      const label = [
+        candidate.getAttribute('aria-label') || '',
+        candidate.getAttribute('title') || '',
+        candidate.textContent || '',
+      ].join(' ');
+
+      return labelPattern.test(label);
+    });
+
+    if (!control || isTemporaryChatControlActive(control)) {
+      return false;
+    }
+
+    control.click();
+    await new Promise((resolve) => { setTimeout(resolve, 300); });
+    return true;
   }
 
   function showFallbackModal(text, reason) {
@@ -117,6 +146,13 @@ export async function runChatgptSendFlow(prompt, options = {}) {
   }
 
   let lastReason = 'unknown';
+  if (preferTemporaryChat) {
+    try {
+      await enableTemporaryChat();
+    } catch (err) {
+      console.warn('[ChatGPT Web Injector] Temporary Chat activation failed:', err);
+    }
+  }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const input = findFirst(inputSelectors);

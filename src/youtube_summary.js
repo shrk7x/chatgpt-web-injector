@@ -1,5 +1,6 @@
 (function initYoutubeSummaryContentScript() {
 const YOUTUBE_SUMMARY_BUTTON_ID = 'chatgpt-web-injector-youtube-summary';
+const YOUTUBE_TRANSCRIPT_BUTTON_ID = 'chatgpt-web-injector-youtube-transcript';
 const YOUTUBE_SUMMARY_STATUS_ID = 'chatgpt-web-injector-youtube-status';
 const YOUTUBE_WATCH_PATH = '/watch';
 const BUTTON_RETRY_MS = 750;
@@ -28,6 +29,7 @@ function isWatchPage() {
 
 function removeButton() {
   document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)?.remove();
+  document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)?.remove();
   document.getElementById(YOUTUBE_SUMMARY_STATUS_ID)?.remove();
 }
 
@@ -202,6 +204,13 @@ function findTranscriptButton() {
   const buttons = Array.from(document.querySelectorAll('button'));
 
   return buttons.find((button) => {
+    if (
+      button.id === YOUTUBE_SUMMARY_BUTTON_ID ||
+      button.id === YOUTUBE_TRANSCRIPT_BUTTON_ID
+    ) {
+      return false;
+    }
+
     const label = [
       button.getAttribute('aria-label') || '',
       button.textContent || '',
@@ -252,6 +261,29 @@ async function fetchTranscriptFromDom() {
   }
 
   return openedTranscript;
+}
+
+async function openTranscriptPanel() {
+  if (readTranscriptFromDom()) {
+    showStatus('Transcript open');
+    return;
+  }
+
+  const visibleButton = findTranscriptButton();
+  if (visibleButton) {
+    visibleButton.click();
+    showStatus('Transcript open');
+    return;
+  }
+
+  const transcriptButton = await waitForTranscriptButton();
+  if (!transcriptButton) {
+    showStatus('Transcript unavailable');
+    return;
+  }
+
+  transcriptButton.click();
+  showStatus('Transcript open');
 }
 
 async function fetchCurrentPlayerResponse() {
@@ -445,6 +477,24 @@ function createButton() {
   return button;
 }
 
+function createTranscriptButton() {
+  const button = document.createElement('button');
+  button.id = YOUTUBE_TRANSCRIPT_BUTTON_ID;
+  button.type = 'button';
+  button.title = 'Show YouTube transcript';
+  button.setAttribute('aria-label', 'Show YouTube transcript');
+  button.textContent = 'TR';
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openTranscriptPanel().catch((error) => {
+      console.warn('[ChatGPT Web Injector] YouTube transcript panel failed:', error);
+      showStatus('Transcript unavailable');
+    });
+  });
+  return button;
+}
+
 function mountButton() {
   clearTimeout(mountTimer);
 
@@ -453,7 +503,10 @@ function mountButton() {
     return;
   }
 
-  if (document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)) {
+  if (
+    document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID) &&
+    document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)
+  ) {
     return;
   }
 
@@ -463,7 +516,12 @@ function mountButton() {
     return;
   }
 
-  subtitlesButton.insertAdjacentElement('afterend', createButton());
+  document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)?.remove();
+  document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)?.remove();
+
+  const summaryButton = createButton();
+  subtitlesButton.insertAdjacentElement('afterend', summaryButton);
+  summaryButton.insertAdjacentElement('afterend', createTranscriptButton());
 }
 
 function handleNavigation() {
