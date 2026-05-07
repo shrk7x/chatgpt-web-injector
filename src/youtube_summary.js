@@ -172,11 +172,33 @@ function readTranscriptFromDom() {
     }
   }
 
+  const modernSegmentNodes = Array.from(document.querySelectorAll('transcript-segment-view-model'));
+  const transcriptHelpers = window.ChatgptWebInjectorYoutubeTranscript;
+
+  for (const segment of modernSegmentNodes) {
+    const timestamp = segment.querySelector('.ytwTranscriptSegmentViewModelTimestamp')?.textContent?.trim() || '';
+    const text = Array.from(segment.querySelectorAll('span.ytAttributedStringHost'))
+      .map((node) => node.textContent?.trim() || '')
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    if (timestamp && text) {
+      lines.push(`[${normalizeTimestamp(timestamp)}] ${text}`);
+      continue;
+    }
+
+    const parsed = transcriptHelpers?.parseModernTranscriptSegmentText(segment.textContent || '');
+    if (parsed?.text) {
+      lines.push(`[${normalizeTimestamp(parsed.timestamp)}] ${parsed.text}`);
+    }
+  }
+
   return lines.join('\n');
 }
 
 function findTranscriptButton() {
-  const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿/i;
+  const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿|转写文稿|內容轉文字|内容转文字/i;
   const buttons = Array.from(document.querySelectorAll('button'));
 
   return buttons.find((button) => {

@@ -193,6 +193,19 @@
       .join('\n');
   }
 
+  function parseModernTranscriptSegmentText(rawText) {
+    const normalized = (rawText || '').trim().replace(/\s+/g, ' ');
+    const match = normalized.match(/^(\d{1,2}:\d{2})(?:(?:\d+)?(?:秒钟|秒|second(?:s)?|分钟|minute(?:s)?))?(.*)$/i);
+    if (!match) {
+      return { timestamp: '', text: normalized };
+    }
+
+    return {
+      timestamp: match[1],
+      text: match[2].trim(),
+    };
+  }
+
   function parseTranscript(text) {
     if (!text || typeof text !== 'string') {
       return '';
@@ -220,6 +233,7 @@
     buildCaptionUrl,
     chooseCaptionTrack,
     parseInnertubeTranscriptResponse,
+    parseModernTranscriptSegmentText,
     parseTranscript,
     parseTranscriptXml,
   };

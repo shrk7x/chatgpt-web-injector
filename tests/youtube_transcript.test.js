@@ -142,3 +142,12 @@ test('parseInnertubeTranscriptResponse decodes transcript panel segments', () =>
     '[00:00] Hello world\n[01:05] Second line'
   );
 });
+
+test('parseModernTranscriptSegmentText separates new YouTube transcript segment text', () => {
+  const { parseModernTranscriptSegmentText } = loadHelpers();
+
+  assert.equal(
+    JSON.stringify(parseModernTranscriptSegmentText('0:055秒钟You have to fight for the bill.')),
+    JSON.stringify({ timestamp: '0:05', text: 'You have to fight for the bill.' })
+  );
+});
