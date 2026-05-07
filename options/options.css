@@ -30,6 +30,10 @@ h2 {
   color: #4b5563;
 }
 
+.settings-section {
+  margin-bottom: 28px;
+}
+
 /* ---- Template list ---- */
 
 .templates-header {

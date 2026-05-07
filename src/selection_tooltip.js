@@ -1,3 +1,4 @@
+(function initSelectionTooltipContentScript() {
 const TOOLTIP_ID = 'chatgpt-web-injector-tooltip';
 const SHOW_DELAY_MS = 100;
 const TOOLTIP_MOUSE_OFFSET = 12;
@@ -177,3 +178,4 @@ document.addEventListener('keyup', () => {
   processSelection();
 }, true);
 log('Event listeners registered (with capture phase)');
+}());

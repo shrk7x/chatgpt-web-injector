@@ -24,9 +24,11 @@ export function renderTemplate(template, variables) {
   const selection = variables?.selection ?? '';
   const title = variables?.title ?? '';
   const url = variables?.url ?? '';
+  const transcript = variables?.transcript ?? '';
 
   return effectiveTemplate
     .replaceAll('{{selection}}', selection)
     .replaceAll('{{title}}', title)
-    .replaceAll('{{url}}', url);
+    .replaceAll('{{url}}', url)
+    .replaceAll('{{transcript}}', transcript);
 }
