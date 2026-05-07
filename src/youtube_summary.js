@@ -1,3 +1,4 @@
+(function initYoutubeSummaryContentScript() {
 const YOUTUBE_SUMMARY_BUTTON_ID = 'chatgpt-web-injector-youtube-summary';
 const YOUTUBE_SUMMARY_STATUS_ID = 'chatgpt-web-injector-youtube-status';
 const YOUTUBE_WATCH_PATH = '/watch';
@@ -199,7 +200,7 @@ async function getTranscript() {
     throw new Error('caption_fetch_failed');
   }
 
-  const transcript = transcriptHelpers.parseTranscriptXml(await response.text());
+  const transcript = transcriptHelpers.parseTranscript(await response.text());
   if (!transcript) {
     throw new Error('empty_transcript');
   }
@@ -313,3 +314,4 @@ function observePlayerControls() {
 
 observePlayerControls();
 handleNavigation();
+}());

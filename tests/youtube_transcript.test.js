@@ -62,3 +62,16 @@ test('parseTranscriptXml decodes captions into timestamped text', () => {
 
   assert.equal(parseTranscriptXml(xml), '[00:00] Hello & welcome\n[01:05] Second line');
 });
+
+test('parseTranscript decodes YouTube json3 captions into timestamped text', () => {
+  const { parseTranscript } = loadHelpers();
+  const json = JSON.stringify({
+    events: [
+      { tStartMs: 400, segs: [{ utf8: 'Hello ' }, { utf8: 'world' }] },
+      { tStartMs: 65200, segs: [{ utf8: 'Second line' }] },
+      { tStartMs: 70000 },
+    ],
+  });
+
+  assert.equal(parseTranscript(json), '[00:00] Hello world\n[01:05] Second line');
+});

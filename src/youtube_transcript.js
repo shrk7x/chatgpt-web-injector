@@ -73,8 +73,50 @@
     return captions.join('\n');
   }
 
+  function parseTranscriptJson(json) {
+    let data;
+    try {
+      data = JSON.parse(json);
+    } catch (_error) {
+      return '';
+    }
+
+    if (!Array.isArray(data.events)) {
+      return '';
+    }
+
+    return data.events
+      .map((event) => {
+        const text = Array.isArray(event.segs)
+          ? event.segs.map((segment) => segment?.utf8 ?? '').join('').trim()
+          : '';
+
+        if (!text) {
+          return '';
+        }
+
+        return `[${formatTimestamp((event.tStartMs ?? 0) / 1000)}] ${text}`;
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  function parseTranscript(text) {
+    if (!text || typeof text !== 'string') {
+      return '';
+    }
+
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{')) {
+      return parseTranscriptJson(trimmed);
+    }
+
+    return parseTranscriptXml(trimmed);
+  }
+
   globalScope.ChatgptWebInjectorYoutubeTranscript = {
     chooseCaptionTrack,
+    parseTranscript,
     parseTranscriptXml,
   };
 }(globalThis));
