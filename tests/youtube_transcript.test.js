@@ -7,6 +7,7 @@ function loadHelpers(options = {}) {
   const context = {
     DOMParser: options.DOMParser,
     navigator: options.navigator ?? { language: 'en-US' },
+    URL,
   };
 
   context.globalThis = context;
@@ -74,4 +75,27 @@ test('parseTranscript decodes YouTube json3 captions into timestamped text', () 
   });
 
   assert.equal(parseTranscript(json), '[00:00] Hello world\n[01:05] Second line');
+});
+
+test('parseTranscript decodes WebVTT captions into timestamped text', () => {
+  const { parseTranscript } = loadHelpers();
+  const vtt = `WEBVTT
+
+00:00:00.400 --> 00:00:01.600
+Hello world
+
+00:01:05.200 --> 00:01:07.200
+Second line
+`;
+
+  assert.equal(parseTranscript(vtt), '[00:00] Hello world\n[01:05] Second line');
+});
+
+test('buildCaptionUrl requests json3 format without dropping existing params', () => {
+  const { buildCaptionUrl } = loadHelpers();
+
+  assert.equal(
+    buildCaptionUrl('https://example.com/api?lang=en&fmt=srv3'),
+    'https://example.com/api?lang=en&fmt=json3'
+  );
 });

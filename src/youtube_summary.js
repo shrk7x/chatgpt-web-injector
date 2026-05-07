@@ -195,7 +195,7 @@ async function getTranscript() {
     throw new Error('no_caption_track');
   }
 
-  const response = await fetch(track.baseUrl, { credentials: 'include' });
+  const response = await fetch(transcriptHelpers.buildCaptionUrl(track.baseUrl), { credentials: 'include' });
   if (!response.ok) {
     throw new Error('caption_fetch_failed');
   }

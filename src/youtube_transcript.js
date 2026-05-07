@@ -49,6 +49,17 @@
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   }
 
+  function parseTimestamp(timestamp) {
+    const parts = timestamp.split(':').map(Number);
+    if (parts.length === 3) {
+      return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+    }
+    if (parts.length === 2) {
+      return (parts[0] * 60) + parts[1];
+    }
+    return Number(timestamp) || 0;
+  }
+
   function parseTranscriptXml(xml) {
     if (!xml || typeof xml !== 'string') {
       return '';
@@ -101,6 +112,35 @@
       .join('\n');
   }
 
+  function parseTranscriptVtt(vtt) {
+    const lines = vtt.split(/\r?\n/);
+    const captions = [];
+
+    for (let i = 0; i < lines.length; i += 1) {
+      const timing = lines[i].match(/^(\d{2}:\d{2}(?::\d{2})?\.\d{3})\s+-->/);
+      if (!timing) {
+        continue;
+      }
+
+      const textLines = [];
+      i += 1;
+      while (i < lines.length && lines[i].trim()) {
+        const line = lines[i].trim();
+        if (!line.startsWith('<')) {
+          textLines.push(line.replace(/<[^>]+>/g, ''));
+        }
+        i += 1;
+      }
+
+      const text = decodeHtmlEntities(textLines.join(' ')).trim();
+      if (text) {
+        captions.push(`[${formatTimestamp(parseTimestamp(timing[1]))}] ${text}`);
+      }
+    }
+
+    return captions.join('\n');
+  }
+
   function parseTranscript(text) {
     if (!text || typeof text !== 'string') {
       return '';
@@ -111,10 +151,21 @@
       return parseTranscriptJson(trimmed);
     }
 
+    if (trimmed.startsWith('WEBVTT')) {
+      return parseTranscriptVtt(trimmed);
+    }
+
     return parseTranscriptXml(trimmed);
   }
 
+  function buildCaptionUrl(baseUrl) {
+    const url = new URL(baseUrl);
+    url.searchParams.set('fmt', 'json3');
+    return url.toString();
+  }
+
   globalScope.ChatgptWebInjectorYoutubeTranscript = {
+    buildCaptionUrl,
     chooseCaptionTrack,
     parseTranscript,
     parseTranscriptXml,
