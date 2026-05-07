@@ -269,13 +269,6 @@ async function openTranscriptPanel() {
     return;
   }
 
-  const visibleButton = findTranscriptButton();
-  if (visibleButton) {
-    visibleButton.click();
-    showStatus('Transcript open');
-    return;
-  }
-
   const transcriptButton = await waitForTranscriptButton();
   if (!transcriptButton) {
     showStatus('Transcript unavailable');

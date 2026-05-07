@@ -43,7 +43,7 @@ test('YouTube summary controls include a transcript panel button', () => {
   assert.equal(button.getAttribute('aria-label'), 'Show YouTube transcript');
 });
 
-test('YouTube transcript panel button clicks the native transcript control', () => {
+test('YouTube transcript panel button clicks the native transcript control', async () => {
   const dom = new JSDOM(`
     <html>
       <body>
@@ -67,6 +67,7 @@ test('YouTube transcript panel button clicks the native transcript control', () 
 
   const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
   button.click();
+  await Promise.resolve();
 
   assert.equal(nativeTranscriptClicked, true);
 });
