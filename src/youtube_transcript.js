@@ -43,8 +43,17 @@
 
   function formatTimestamp(seconds) {
     const totalSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
     const remainingSeconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return [
+        String(hours).padStart(2, '0'),
+        String(minutes).padStart(2, '0'),
+        String(remainingSeconds).padStart(2, '0'),
+      ].join(':');
+    }
 
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   }
@@ -195,7 +204,7 @@
 
   function parseModernTranscriptSegmentText(rawText) {
     const normalized = (rawText || '').trim().replace(/\s+/g, ' ');
-    const match = normalized.match(/^(\d{1,2}:\d{2})(?:(?:\d+)?(?:秒钟|秒|second(?:s)?|分钟|minute(?:s)?))?(.*)$/i);
+    const match = normalized.match(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:(?:\d+)?(?:秒钟|秒|second(?:s)?|分钟|minute(?:s)?))?(.*)$/i);
     if (!match) {
       return { timestamp: '', text: normalized };
     }

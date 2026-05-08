@@ -1,10 +1,12 @@
 import { DEFAULT_TEMPLATE } from '../src/template.js';
 import {
   loadTemplates,
+  loadYoutubeSummaryTemporaryChatEnabled,
   loadYoutubeSummaryTemplate,
   makeId,
   resetYoutubeSummaryTemplate,
   saveTemplates,
+  saveYoutubeSummaryTemporaryChatEnabled,
   saveYoutubeSummaryTemplate,
 } from '../src/storage.js';
 
@@ -16,6 +18,7 @@ const saveTplBtn = document.getElementById('save-tpl');
 const cancelTplBtn = document.getElementById('cancel-tpl');
 const addTplBtn = document.getElementById('add-template');
 const youtubeBodyInput = document.getElementById('youtube-tpl-body');
+const youtubeTemporaryChatInput = document.getElementById('youtube-temporary-chat');
 const saveYoutubeTplBtn = document.getElementById('save-youtube-tpl');
 const resetYoutubeTplBtn = document.getElementById('reset-youtube-tpl');
 const statusEl = document.getElementById('status');
@@ -179,29 +182,56 @@ saveTplBtn.addEventListener('click', () => {
 
 cancelTplBtn.addEventListener('click', closeEditor);
 
+async function onSaveYoutubeTemplate() {
+  await saveYoutubeSummaryTemplate(youtubeBodyInput.value);
+  setStatus('YouTube Summary template saved.');
+}
+
+async function onResetYoutubeTemplate() {
+  const template = await resetYoutubeSummaryTemplate();
+  youtubeBodyInput.value = template;
+  setStatus('YouTube Summary template reset.');
+}
+
+async function onSaveYoutubeTemporaryChat(nextChecked) {
+  await saveYoutubeSummaryTemporaryChatEnabled(nextChecked);
+  setStatus('YouTube Summary chat mode saved.');
+}
+
 saveYoutubeTplBtn.addEventListener('click', () => {
-  saveYoutubeSummaryTemplate(youtubeBodyInput.value).then(() => {
-    setStatus('YouTube Summary template saved.');
-  }).catch((err) => {
+  onSaveYoutubeTemplate().catch((err) => {
     console.error('[ChatGPT Web Injector] YouTube template save failed:', err);
     setStatus('Save failed. Please try again.');
   });
 });
 
 resetYoutubeTplBtn.addEventListener('click', () => {
-  resetYoutubeSummaryTemplate().then((template) => {
-    youtubeBodyInput.value = template;
-    setStatus('YouTube Summary template reset.');
-  }).catch((err) => {
+  onResetYoutubeTemplate().catch((err) => {
     console.error('[ChatGPT Web Injector] YouTube template reset failed:', err);
     setStatus('Reset failed. Please try again.');
+  });
+});
+
+youtubeTemporaryChatInput.addEventListener('change', () => {
+  const nextChecked = youtubeTemporaryChatInput.checked;
+
+  onSaveYoutubeTemporaryChat(nextChecked).catch((err) => {
+    youtubeTemporaryChatInput.checked = !nextChecked;
+    console.error('[ChatGPT Web Injector] YouTube Temporary Chat save failed:', err);
+    setStatus('Save failed. Please try again.');
   });
 });
 
 async function init() {
   state = await loadTemplates();
   youtubeBodyInput.value = await loadYoutubeSummaryTemplate();
+  youtubeTemporaryChatInput.checked = await loadYoutubeSummaryTemporaryChatEnabled();
   renderList();
+
+  if (window.location.hash === '#youtube-summary-template') {
+    document.getElementById('youtube-summary-template')?.scrollIntoView({ block: 'start' });
+    youtubeBodyInput.focus();
+  }
 }
 
 init().catch((err) => {

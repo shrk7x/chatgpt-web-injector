@@ -77,6 +77,17 @@ test('parseTranscript decodes YouTube json3 captions into timestamped text', () 
   assert.equal(parseTranscript(json), '[00:00] Hello world\n[01:05] Second line');
 });
 
+test('parseTranscript keeps hour timestamps for long videos', () => {
+  const { parseTranscript } = loadHelpers();
+  const json = JSON.stringify({
+    events: [
+      { tStartMs: 3930000, segs: [{ utf8: 'Past the first hour' }] },
+    ],
+  });
+
+  assert.equal(parseTranscript(json), '[01:05:30] Past the first hour');
+});
+
 test('parseTranscript decodes WebVTT captions into timestamped text', () => {
   const { parseTranscript } = loadHelpers();
   const vtt = `WEBVTT
@@ -149,5 +160,14 @@ test('parseModernTranscriptSegmentText separates new YouTube transcript segment 
   assert.equal(
     JSON.stringify(parseModernTranscriptSegmentText('0:055秒钟You have to fight for the bill.')),
     JSON.stringify({ timestamp: '0:05', text: 'You have to fight for the bill.' })
+  );
+});
+
+test('parseModernTranscriptSegmentText preserves hour timestamps', () => {
+  const { parseModernTranscriptSegmentText } = loadHelpers();
+
+  assert.equal(
+    JSON.stringify(parseModernTranscriptSegmentText('1:23:45 Long-form point')),
+    JSON.stringify({ timestamp: '1:23:45', text: 'Long-form point' })
   );
 });

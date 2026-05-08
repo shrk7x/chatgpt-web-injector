@@ -37,7 +37,7 @@
         </div>
       </section>
 
-      <section class="settings-section">
+      <section id="youtube-summary-template" class="settings-section">
         <div class="templates-header">
           <h2>YouTube Summary Template</h2>
           <button id="reset-youtube-tpl" type="button" class="btn-secondary">Reset</button>
@@ -49,6 +49,11 @@
         <p class="variables">
           Available variables: <code>{{title}}</code>, <code>{{url}}</code>, <code>{{transcript}}</code>
         </p>
+
+        <label class="checkbox-row" for="youtube-temporary-chat">
+          <input id="youtube-temporary-chat" type="checkbox" />
+          <span>Use Temporary Chat for YouTube summaries</span>
+        </label>
 
         <div class="actions">
           <button id="save-youtube-tpl" type="button">Save YouTube template</button>

@@ -1,7 +1,5 @@
 # YouTube Caption Summary Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
-
 **Goal:** Add a YouTube-only caption summary button that uses a dedicated editable prompt template and sends the rendered prompt to ChatGPT automatically.
 
 **Architecture:** Add a small YouTube content script for button placement and caption extraction, then reuse the existing service worker ChatGPT send flow. Keep the YouTube Summary template separate from the existing selection templates so normal selection behavior is unchanged.

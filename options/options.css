@@ -110,6 +110,18 @@ label:first-child {
   margin-top: 0;
 }
 
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.checkbox-row input {
+  width: 16px;
+  height: 16px;
+}
+
 input[type='text'] {
   width: 100%;
   padding: 8px 10px;

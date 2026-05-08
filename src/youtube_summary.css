@@ -1,4 +1,5 @@
-#chatgpt-web-injector-youtube-summary {
+#chatgpt-web-injector-youtube-summary,
+#chatgpt-web-injector-youtube-transcript {
   min-width: 36px;
   height: 36px;
   margin: 0 2px;
@@ -16,8 +17,18 @@
   vertical-align: top;
 }
 
+#chatgpt-web-injector-youtube-transcript {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  font-size: 12px;
+}
+
 #chatgpt-web-injector-youtube-summary:hover {
   background: #10a37f;
+}
+
+#chatgpt-web-injector-youtube-transcript:hover {
+  background: #fff;
 }
 
 #chatgpt-web-injector-youtube-summary:disabled {

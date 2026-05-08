@@ -1,5 +1,6 @@
 (function initYoutubeSummaryContentScript() {
 const YOUTUBE_SUMMARY_BUTTON_ID = 'chatgpt-web-injector-youtube-summary';
+const YOUTUBE_TRANSCRIPT_BUTTON_ID = 'chatgpt-web-injector-youtube-transcript';
 const YOUTUBE_SUMMARY_STATUS_ID = 'chatgpt-web-injector-youtube-status';
 const YOUTUBE_WATCH_PATH = '/watch';
 const BUTTON_RETRY_MS = 750;
@@ -28,6 +29,7 @@ function isWatchPage() {
 
 function removeButton() {
   document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)?.remove();
+  document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)?.remove();
   document.getElementById(YOUTUBE_SUMMARY_STATUS_ID)?.remove();
 }
 
@@ -154,7 +156,7 @@ function getTranscriptParamsFromPageScripts() {
 function normalizeTimestamp(timestamp) {
   const parts = timestamp.trim().split(':');
   if (parts.length >= 2) {
-    return parts.slice(-2).map((part) => part.padStart(2, '0')).join(':');
+    return parts.map((part) => part.padStart(2, '0')).join(':');
   }
   return '00:00';
 }
@@ -202,6 +204,13 @@ function findTranscriptButton() {
   const buttons = Array.from(document.querySelectorAll('button'));
 
   return buttons.find((button) => {
+    if (
+      button.id === YOUTUBE_SUMMARY_BUTTON_ID ||
+      button.id === YOUTUBE_TRANSCRIPT_BUTTON_ID
+    ) {
+      return false;
+    }
+
     const label = [
       button.getAttribute('aria-label') || '',
       button.textContent || '',
@@ -222,13 +231,25 @@ async function waitForTranscriptDom() {
   return transcript;
 }
 
+async function waitForTranscriptButton() {
+  const startedAt = Date.now();
+  let transcriptButton = findTranscriptButton();
+
+  while (!transcriptButton && Date.now() - startedAt < TRANSCRIPT_DOM_WAIT_MS) {
+    await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
+    transcriptButton = findTranscriptButton();
+  }
+
+  return transcriptButton;
+}
+
 async function fetchTranscriptFromDom() {
   const visibleTranscript = readTranscriptFromDom();
   if (visibleTranscript) {
     return visibleTranscript;
   }
 
-  const transcriptButton = findTranscriptButton();
+  const transcriptButton = await waitForTranscriptButton();
   if (!transcriptButton) {
     throw new Error('transcript_dom_button_not_found');
   }
@@ -240,6 +261,22 @@ async function fetchTranscriptFromDom() {
   }
 
   return openedTranscript;
+}
+
+async function openTranscriptPanel() {
+  if (readTranscriptFromDom()) {
+    showStatus('Transcript open');
+    return;
+  }
+
+  const transcriptButton = await waitForTranscriptButton();
+  if (!transcriptButton) {
+    showStatus('Transcript unavailable');
+    return;
+  }
+
+  transcriptButton.click();
+  showStatus('Transcript open');
 }
 
 async function fetchCurrentPlayerResponse() {
@@ -433,6 +470,24 @@ function createButton() {
   return button;
 }
 
+function createTranscriptButton() {
+  const button = document.createElement('button');
+  button.id = YOUTUBE_TRANSCRIPT_BUTTON_ID;
+  button.type = 'button';
+  button.title = 'Show YouTube transcript';
+  button.setAttribute('aria-label', 'Show YouTube transcript');
+  button.textContent = 'TR';
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openTranscriptPanel().catch((error) => {
+      console.warn('[ChatGPT Web Injector] YouTube transcript panel failed:', error);
+      showStatus('Transcript unavailable');
+    });
+  });
+  return button;
+}
+
 function mountButton() {
   clearTimeout(mountTimer);
 
@@ -441,7 +496,10 @@ function mountButton() {
     return;
   }
 
-  if (document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)) {
+  if (
+    document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID) &&
+    document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)
+  ) {
     return;
   }
 
@@ -451,7 +509,12 @@ function mountButton() {
     return;
   }
 
-  subtitlesButton.insertAdjacentElement('afterend', createButton());
+  document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)?.remove();
+  document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)?.remove();
+
+  const summaryButton = createButton();
+  subtitlesButton.insertAdjacentElement('afterend', summaryButton);
+  summaryButton.insertAdjacentElement('afterend', createTranscriptButton());
 }
 
 function handleNavigation() {
