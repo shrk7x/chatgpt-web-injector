@@ -20,9 +20,24 @@ export function getChatgptTargetUrl(preferTemporaryChat) {
   return preferTemporaryChat ? CHATGPT_TEMPORARY_URL : CHATGPT_URL;
 }
 
-function waitForTabComplete(tabId, timeoutMs) {
+export function waitForTabComplete(tabId, timeoutMs) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeoutId);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      resolve();
+    };
+
     const timeoutId = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       chrome.tabs.onUpdated.removeListener(onUpdated);
       reject(new Error('tab_load_timeout'));
     }, timeoutMs);
@@ -33,13 +48,16 @@ function waitForTabComplete(tabId, timeoutMs) {
       }
 
       if (changeInfo.status === 'complete') {
-        clearTimeout(timeoutId);
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        resolve();
+        finish();
       }
     };
 
     chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.get(tabId).then((tab) => {
+      if (tab?.status === 'complete') {
+        finish();
+      }
+    }).catch(() => {});
   });
 }
 

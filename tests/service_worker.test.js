@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 
 const previousChrome = globalThis.chrome;
@@ -19,6 +19,9 @@ globalThis.chrome = {
     onChanged: { addListener() {} },
   },
   tabs: {
+    async get(tabId) {
+      return { id: tabId, status: 'complete' };
+    },
     onUpdated: {
       addListener() {},
       removeListener() {},
@@ -26,11 +29,17 @@ globalThis.chrome = {
   },
 };
 
-const { getChatgptTargetUrl } = await import('../src/service_worker.js');
+const { getChatgptTargetUrl, waitForTabComplete } = await import('../src/service_worker.js');
 
-globalThis.chrome = previousChrome;
+after(() => {
+  globalThis.chrome = previousChrome;
+});
 
 test('getChatgptTargetUrl returns temporary URL only when enabled', () => {
   assert.equal(getChatgptTargetUrl(true), 'https://chatgpt.com/?temporary-chat=true');
   assert.equal(getChatgptTargetUrl(false), 'https://chatgpt.com/');
+});
+
+test('waitForTabComplete resolves when the tab is already complete', async () => {
+  await waitForTabComplete(123, 1);
 });
