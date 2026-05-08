@@ -8,11 +8,15 @@ function withDom(dom, callback) {
   const previousWindow = globalThis.window;
   const previousDocument = globalThis.document;
   const previousEvent = globalThis.Event;
+  const previousInputEvent = globalThis.InputEvent;
+  const previousKeyboardEvent = globalThis.KeyboardEvent;
   const previousMouseEvent = globalThis.MouseEvent;
 
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
   globalThis.Event = dom.window.Event;
+  globalThis.InputEvent = dom.window.InputEvent;
+  globalThis.KeyboardEvent = dom.window.KeyboardEvent;
   globalThis.MouseEvent = dom.window.MouseEvent;
 
   return Promise.resolve()
@@ -21,6 +25,8 @@ function withDom(dom, callback) {
       globalThis.window = previousWindow;
       globalThis.document = previousDocument;
       globalThis.Event = previousEvent;
+      globalThis.InputEvent = previousInputEvent;
+      globalThis.KeyboardEvent = previousKeyboardEvent;
       globalThis.MouseEvent = previousMouseEvent;
     });
 }
@@ -145,4 +151,217 @@ test('runChatgptSendFlow enables Temporary Chat before sending when requested', 
   assert.equal(result.ok, true);
   assert.equal(temporaryClicked, true);
   assert.equal(sendClicked, true);
+});
+
+test('runChatgptSendFlow does not toggle Temporary Chat when already on a temporary chat URL', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <button aria-label="Temporary chat">Temporary</button>
+        <textarea id="composer"></textarea>
+        <button data-testid="send-button">Send</button>
+      </body>
+    </html>
+  `, { url: 'https://chatgpt.com/?temporary-chat=true' });
+
+  const { document } = dom.window;
+  const temporary = document.querySelector('[aria-label="Temporary chat"]');
+  const send = document.querySelector('[data-testid="send-button"]');
+
+  let temporaryClicked = false;
+  let sendClicked = false;
+
+  temporary.addEventListener('click', () => {
+    temporaryClicked = true;
+  });
+
+  send.addEventListener('click', (event) => {
+    event.preventDefault();
+    sendClicked = true;
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('temporary url hello', {
+      maxAttempts: 1,
+      intervalMs: 1,
+      preferTemporaryChat: true,
+    })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(temporaryClicked, false);
+  assert.equal(sendClicked, true);
+});
+
+test('runChatgptSendFlow inserts prompt into plaintext-only contenteditable composer', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div id="composer" contenteditable="plaintext-only" role="textbox"></div>
+        <button data-testid="send-button">Send</button>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const composer = document.querySelector('#composer');
+  const send = document.querySelector('[data-testid="send-button"]');
+
+  document.execCommand = (_command, _showUi, value) => {
+    composer.textContent = value;
+    composer.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    return true;
+  };
+
+  let clicked = false;
+  send.addEventListener('click', (event) => {
+    event.preventDefault();
+    clicked = true;
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('plaintext hello', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(composer.textContent, 'plaintext hello');
+  assert.equal(clicked, true);
+});
+
+test('runChatgptSendFlow falls back when execCommand does not update contenteditable composer', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div id="composer" contenteditable="true" role="textbox"></div>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const composer = document.querySelector('#composer');
+
+  document.execCommand = () => false;
+
+  let clicked = false;
+  composer.addEventListener('input', () => {
+    if (document.querySelector('[aria-label="Submit message"]')) {
+      return;
+    }
+
+    const send = document.createElement('button');
+    send.setAttribute('aria-label', 'Submit message');
+    send.addEventListener('click', (event) => {
+      event.preventDefault();
+      clicked = true;
+    });
+    document.body.append(send);
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('fallback contenteditable hello', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(composer.textContent, 'fallback contenteditable hello');
+  assert.equal(clicked, true);
+});
+
+test('runChatgptSendFlow injects prompt before the send button appears', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <textarea id="composer"></textarea>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const textarea = document.querySelector('#composer');
+
+  let clicked = false;
+  textarea.addEventListener('input', () => {
+    if (document.querySelector('[data-testid="send-button"]')) {
+      return;
+    }
+
+    const send = document.createElement('button');
+    send.setAttribute('data-testid', 'send-button');
+    send.addEventListener('click', (event) => {
+      event.preventDefault();
+      clicked = true;
+    });
+    document.body.append(send);
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('late send button', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(textarea.value, 'late send button');
+  assert.equal(clicked, true);
+});
+
+test('runChatgptSendFlow recognizes Submit message as the send button', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <textarea id="composer"></textarea>
+        <button aria-label="Submit message">Submit</button>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const textarea = document.querySelector('#composer');
+  const submit = document.querySelector('[aria-label="Submit message"]');
+
+  let clicked = false;
+  submit.addEventListener('click', (event) => {
+    event.preventDefault();
+    clicked = true;
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('submit hello', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(textarea.value, 'submit hello');
+  assert.equal(clicked, true);
+});
+
+test('runChatgptSendFlow waits for the send button to become enabled before returning', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <textarea id="composer"></textarea>
+        <button aria-label="Submit message" disabled>Submit</button>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const textarea = document.querySelector('#composer');
+  const submit = document.querySelector('[aria-label="Submit message"]');
+
+  let clicked = false;
+  textarea.addEventListener('input', () => {
+    setTimeout(() => {
+      submit.disabled = false;
+    }, 450);
+  });
+
+  submit.addEventListener('click', (event) => {
+    event.preventDefault();
+    clicked = true;
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('wait for enabled', { maxAttempts: 5, intervalMs: 50 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(textarea.value, 'wait for enabled');
+  assert.equal(clicked, true);
 });

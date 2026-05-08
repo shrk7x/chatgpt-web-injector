@@ -4,7 +4,7 @@ export async function runChatgptSendFlow(prompt, options = {}) {
   const preferTemporaryChat = options.preferTemporaryChat === true;
   const fallbackId = 'chatgpt-web-injector-fallback';
 
-  const inputSelectors = ['textarea', "[contenteditable='true']", "div[role='textbox']"];
+  const inputSelectors = ['textarea', '[contenteditable]', "div[role='textbox']"];
   const sendSelectors = [
     "button[data-testid='send-button']",
     "button[data-testid*='send']",
@@ -31,15 +31,84 @@ export async function runChatgptSendFlow(prompt, options = {}) {
     if (btn) return btn;
     // Fall back: any button near the input that looks like a send button
     const allButtons = Array.from(document.querySelectorAll('button'));
-    return allButtons.find(b =>
-      /send|submit|发送/i.test(b.getAttribute('aria-label') || b.getAttribute('data-testid') || '')
+    return allButtons.find((button) =>
+      /send|submit|发送|提交/i.test(
+        button.getAttribute('aria-label') || button.getAttribute('data-testid') || ''
+      )
     ) || null;
+  }
+
+  function dispatchTextInputEvents(input, text) {
+    if (typeof InputEvent === 'function') {
+      input.dispatchEvent(new InputEvent('input', {
+        bubbles: true,
+        cancelable: true,
+        data: text,
+        inputType: 'insertText',
+      }));
+    } else {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function setNativeValue(input, text) {
+    const descriptor = Object.getOwnPropertyDescriptor(input.constructor.prototype, 'value');
+    if (descriptor?.set) {
+      descriptor.set.call(input, text);
+    } else {
+      input.value = text;
+    }
+  }
+
+  function selectEditableContents(input) {
+    const selection = window.getSelection?.();
+    if (!selection || !document.createRange) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(input);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  function setContentEditableText(input, text) {
+    input.textContent = text;
+    dispatchTextInputEvents(input, text);
+  }
+
+  function insertPrompt(input, text) {
+    input.focus();
+
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      setNativeValue(input, text);
+      dispatchTextInputEvents(input, text);
+      return;
+    }
+
+    selectEditableContents(input);
+    const inserted = document.execCommand('insertText', false, text);
+    if (!inserted || !input.textContent?.includes(text)) {
+      setContentEditableText(input, text);
+    } else {
+      dispatchTextInputEvents(input, text);
+    }
   }
 
   function isTemporaryChatControlActive(control) {
     return control.getAttribute('aria-pressed') === 'true' ||
       control.getAttribute('aria-checked') === 'true' ||
       control.getAttribute('data-state') === 'checked';
+  }
+
+  function isTemporaryChatUrl() {
+    try {
+      return new window.URL(window.location.href).searchParams.get('temporary-chat') === 'true';
+    } catch (_error) {
+      return false;
+    }
   }
 
   async function enableTemporaryChat() {
@@ -146,7 +215,7 @@ export async function runChatgptSendFlow(prompt, options = {}) {
   }
 
   let lastReason = 'unknown';
-  if (preferTemporaryChat) {
+  if (preferTemporaryChat && !isTemporaryChatUrl()) {
     try {
       await enableTemporaryChat();
     } catch (err) {
@@ -156,25 +225,12 @@ export async function runChatgptSendFlow(prompt, options = {}) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const input = findFirst(inputSelectors);
-    const sendButton = findSendButton();
 
     if (!input) {
       lastReason = 'input_not_found';
-    } else if (!sendButton) {
-      lastReason = 'send_not_found';
     } else {
       try {
-        if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
-          input.focus();
-          input.value = prompt;
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        } else {
-          // contenteditable div (ChatGPT's current input)
-          input.focus();
-          document.execCommand('selectAll', false, null);
-          document.execCommand('insertText', false, prompt);
-        }
+        insertPrompt(input, prompt);
       } catch (err) {
         lastReason = `inject_error: ${err.message}`;
         continue;
@@ -183,21 +239,17 @@ export async function runChatgptSendFlow(prompt, options = {}) {
       // Wait for React to process the injected text and enable the send button
       await new Promise((resolve) => { setTimeout(resolve, 300); });
 
-      // Re-query send button after wait — it may have become enabled
+      // Re-query send button after input — ChatGPT may only render it after text exists.
       const sendButtonReady = findSendButton();
 
       if (sendButtonReady && !sendButtonReady.disabled) {
         sendButtonReady.click();
+        return { ok: true, attempts: attempt };
+      } else if (sendButtonReady) {
+        lastReason = 'send_disabled';
       } else {
-        // Fallback: dispatch Enter keydown on the input
-        input.dispatchEvent(new KeyboardEvent('keydown', {
-          key: 'Enter',
-          code: 'Enter',
-          bubbles: true,
-          cancelable: true,
-        }));
+        lastReason = 'send_not_found';
       }
-      return { ok: true, attempts: attempt };
     }
 
     if (attempt < maxAttempts) {

@@ -4,6 +4,7 @@ const LEGACY_KEY = 'defaultTemplate';
 const TEMPLATES_KEY = 'templates';
 const ACTIVE_ID_KEY = 'activeTemplateId';
 const YOUTUBE_SUMMARY_TEMPLATE_KEY = 'youtubeSummaryTemplate';
+const YOUTUBE_SUMMARY_TEMPORARY_CHAT_KEY = 'youtubeSummaryTemporaryChatEnabled';
 
 export const DEFAULT_YOUTUBE_SUMMARY_TEMPLATE = `You are a precise video summary assistant.
 
@@ -118,4 +119,13 @@ export async function saveYoutubeSummaryTemplate(body) {
 export async function resetYoutubeSummaryTemplate() {
   await saveYoutubeSummaryTemplate(DEFAULT_YOUTUBE_SUMMARY_TEMPLATE);
   return DEFAULT_YOUTUBE_SUMMARY_TEMPLATE;
+}
+
+export async function loadYoutubeSummaryTemporaryChatEnabled() {
+  const data = await chrome.storage.sync.get([YOUTUBE_SUMMARY_TEMPORARY_CHAT_KEY]);
+  return data[YOUTUBE_SUMMARY_TEMPORARY_CHAT_KEY] !== false;
+}
+
+export async function saveYoutubeSummaryTemporaryChatEnabled(enabled) {
+  await chrome.storage.sync.set({ [YOUTUBE_SUMMARY_TEMPORARY_CHAT_KEY]: enabled === true });
 }

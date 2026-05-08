@@ -1,10 +1,12 @@
 import { DEFAULT_TEMPLATE } from '../src/template.js';
 import {
   loadTemplates,
+  loadYoutubeSummaryTemporaryChatEnabled,
   loadYoutubeSummaryTemplate,
   makeId,
   resetYoutubeSummaryTemplate,
   saveTemplates,
+  saveYoutubeSummaryTemporaryChatEnabled,
   saveYoutubeSummaryTemplate,
 } from '../src/storage.js';
 
@@ -16,6 +18,7 @@ const saveTplBtn = document.getElementById('save-tpl');
 const cancelTplBtn = document.getElementById('cancel-tpl');
 const addTplBtn = document.getElementById('add-template');
 const youtubeBodyInput = document.getElementById('youtube-tpl-body');
+const youtubeTemporaryChatInput = document.getElementById('youtube-temporary-chat');
 const saveYoutubeTplBtn = document.getElementById('save-youtube-tpl');
 const resetYoutubeTplBtn = document.getElementById('reset-youtube-tpl');
 const statusEl = document.getElementById('status');
@@ -198,9 +201,19 @@ resetYoutubeTplBtn.addEventListener('click', () => {
   });
 });
 
+youtubeTemporaryChatInput.addEventListener('change', () => {
+  saveYoutubeSummaryTemporaryChatEnabled(youtubeTemporaryChatInput.checked).then(() => {
+    setStatus('YouTube Summary chat mode saved.');
+  }).catch((err) => {
+    console.error('[ChatGPT Web Injector] YouTube Temporary Chat save failed:', err);
+    setStatus('Save failed. Please try again.');
+  });
+});
+
 async function init() {
   state = await loadTemplates();
   youtubeBodyInput.value = await loadYoutubeSummaryTemplate();
+  youtubeTemporaryChatInput.checked = await loadYoutubeSummaryTemporaryChatEnabled();
   renderList();
 
   if (window.location.hash === '#youtube-summary-template') {

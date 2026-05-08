@@ -1,5 +1,10 @@
 import { runChatgptSendFlow } from './chatgpt_content.js';
-import { loadTemplates, loadTemplateById, loadYoutubeSummaryTemplate } from './storage.js';
+import {
+  loadTemplates,
+  loadTemplateById,
+  loadYoutubeSummaryTemporaryChatEnabled,
+  loadYoutubeSummaryTemplate,
+} from './storage.js';
 import { renderTemplate } from './template.js';
 
 const MENU_ID = 'send-to-chatgpt';
@@ -7,13 +12,34 @@ const MENU_ITEM_PREFIX = 'send-to-chatgpt-tpl-';
 const CHATGPT_URL = 'https://chatgpt.com/';
 const CHATGPT_TEMPORARY_URL = 'https://chatgpt.com/?temporary-chat=true';
 const TAB_WAIT_TIMEOUT_MS = 15000;
+const INJECT_ATTEMPTS = 3;
+const INJECT_RETRY_MS = 750;
 
 let isMenuRebuildRunning = false;
 let hasPendingMenuRebuild = false;
 
-function waitForTabComplete(tabId, timeoutMs) {
+export function getChatgptTargetUrl(preferTemporaryChat) {
+  return preferTemporaryChat ? CHATGPT_TEMPORARY_URL : CHATGPT_URL;
+}
+
+export function waitForTabComplete(tabId, timeoutMs) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeoutId);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      resolve();
+    };
+
     const timeoutId = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       chrome.tabs.onUpdated.removeListener(onUpdated);
       reject(new Error('tab_load_timeout'));
     }, timeoutMs);
@@ -24,14 +50,51 @@ function waitForTabComplete(tabId, timeoutMs) {
       }
 
       if (changeInfo.status === 'complete') {
-        clearTimeout(timeoutId);
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        resolve();
+        finish();
       }
     };
 
     chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.get(tabId).then((tab) => {
+      if (tab?.status === 'complete') {
+        finish();
+      }
+    }).catch(() => {});
   });
+}
+
+function isTransientFrameError(error) {
+  return /frame with id \d+ was removed/i.test(error?.message || '');
+}
+
+export async function executeChatgptSendFlow(tabId, prompt, options = {}) {
+  const injectAttempts = Number.isFinite(options.injectAttempts) ? options.injectAttempts : INJECT_ATTEMPTS;
+  const injectRetryMs = Number.isFinite(options.injectRetryMs) ? options.injectRetryMs : INJECT_RETRY_MS;
+
+  for (let attempt = 1; attempt <= injectAttempts; attempt += 1) {
+    try {
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: runChatgptSendFlow,
+        args: [prompt, {
+          maxAttempts: options.maxAttempts,
+          intervalMs: options.intervalMs,
+          preferTemporaryChat: options.preferTemporaryChat === true,
+        }],
+      });
+
+      return result?.result || result;
+    } catch (error) {
+      if (!isTransientFrameError(error) || attempt === injectAttempts) {
+        throw error;
+      }
+
+      await waitForTabComplete(tabId, TAB_WAIT_TIMEOUT_MS);
+      await new Promise((resolve) => { setTimeout(resolve, injectRetryMs); });
+    }
+  }
+
+  throw new Error('chatgpt_injection_failed');
 }
 
 async function sendWithTemplate(templateId, selectionText, tab) {
@@ -47,24 +110,21 @@ async function sendWithTemplate(templateId, selectionText, tab) {
 }
 
 async function sendPromptToChatgpt(prompt, options = {}) {
-  const targetUrl = options.preferTemporaryChat === true ? CHATGPT_TEMPORARY_URL : CHATGPT_URL;
+  const targetUrl = getChatgptTargetUrl(options.preferTemporaryChat === true);
   const targetTab = await chrome.tabs.create({ url: targetUrl, active: true });
   await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
 
-  const [result] = await chrome.scripting.executeScript({
-    target: { tabId: targetTab.id },
-    func: runChatgptSendFlow,
-    args: [prompt, {
-      maxAttempts: 24,
-      intervalMs: 250,
-      preferTemporaryChat: options.preferTemporaryChat === true,
-    }],
+  const result = await executeChatgptSendFlow(targetTab.id, prompt, {
+    maxAttempts: 24,
+    intervalMs: 250,
+    preferTemporaryChat: options.preferTemporaryChat === true,
   });
 
-  console.log('[ChatGPT Web Injector] Runtime send result:', result?.result || result);
+  console.log('[ChatGPT Web Injector] Runtime send result:', result);
 }
 
 async function sendYoutubeSummary(payload) {
+  const preferTemporaryChat = await loadYoutubeSummaryTemporaryChatEnabled();
   const template = await loadYoutubeSummaryTemplate();
   const prompt = renderTemplate(template, {
     title: payload?.title || '',
@@ -72,7 +132,7 @@ async function sendYoutubeSummary(payload) {
     transcript: payload?.transcript || '',
   });
 
-  await sendPromptToChatgpt(prompt, { preferTemporaryChat: true });
+  await sendPromptToChatgpt(prompt, { preferTemporaryChat });
 }
 
 async function rebuildContextMenuOnce() {
