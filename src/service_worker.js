@@ -1,5 +1,10 @@
 import { runChatgptSendFlow } from './chatgpt_content.js';
-import { loadTemplates, loadTemplateById, loadYoutubeSummaryTemplate } from './storage.js';
+import {
+  loadTemplates,
+  loadTemplateById,
+  loadYoutubeSummaryTemporaryChatEnabled,
+  loadYoutubeSummaryTemplate,
+} from './storage.js';
 import { renderTemplate } from './template.js';
 
 const MENU_ID = 'send-to-chatgpt';
@@ -10,6 +15,10 @@ const TAB_WAIT_TIMEOUT_MS = 15000;
 
 let isMenuRebuildRunning = false;
 let hasPendingMenuRebuild = false;
+
+export function getChatgptTargetUrl(preferTemporaryChat) {
+  return preferTemporaryChat ? CHATGPT_TEMPORARY_URL : CHATGPT_URL;
+}
 
 function waitForTabComplete(tabId, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -47,7 +56,7 @@ async function sendWithTemplate(templateId, selectionText, tab) {
 }
 
 async function sendPromptToChatgpt(prompt, options = {}) {
-  const targetUrl = options.preferTemporaryChat === true ? CHATGPT_TEMPORARY_URL : CHATGPT_URL;
+  const targetUrl = getChatgptTargetUrl(options.preferTemporaryChat === true);
   const targetTab = await chrome.tabs.create({ url: targetUrl, active: true });
   await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
 
@@ -65,6 +74,7 @@ async function sendPromptToChatgpt(prompt, options = {}) {
 }
 
 async function sendYoutubeSummary(payload) {
+  const preferTemporaryChat = await loadYoutubeSummaryTemporaryChatEnabled();
   const template = await loadYoutubeSummaryTemplate();
   const prompt = renderTemplate(template, {
     title: payload?.title || '',
@@ -72,7 +82,7 @@ async function sendYoutubeSummary(payload) {
     transcript: payload?.transcript || '',
   });
 
-  await sendPromptToChatgpt(prompt, { preferTemporaryChat: true });
+  await sendPromptToChatgpt(prompt, { preferTemporaryChat });
 }
 
 async function rebuildContextMenuOnce() {

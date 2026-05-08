@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 
 import {
   DEFAULT_YOUTUBE_SUMMARY_TEMPLATE,
+  loadYoutubeSummaryTemporaryChatEnabled,
   loadYoutubeSummaryTemplate,
   resetYoutubeSummaryTemplate,
+  saveYoutubeSummaryTemporaryChatEnabled,
   saveYoutubeSummaryTemplate,
 } from '../src/storage.js';
 
@@ -85,6 +87,34 @@ test('resetYoutubeSummaryTemplate restores the default YouTube template', async 
 
     assert.equal(template, DEFAULT_YOUTUBE_SUMMARY_TEMPLATE);
     assert.equal(chromeStorage.store.youtubeSummaryTemplate, DEFAULT_YOUTUBE_SUMMARY_TEMPLATE);
+  } finally {
+    chromeStorage.restore();
+  }
+});
+
+test('loadYoutubeSummaryTemporaryChatEnabled defaults to true when unset', async () => {
+  const chromeStorage = installChromeStorage();
+
+  try {
+    const enabled = await loadYoutubeSummaryTemporaryChatEnabled();
+
+    assert.equal(enabled, true);
+  } finally {
+    chromeStorage.restore();
+  }
+});
+
+test('saveYoutubeSummaryTemporaryChatEnabled persists false and true values', async () => {
+  const chromeStorage = installChromeStorage();
+
+  try {
+    await saveYoutubeSummaryTemporaryChatEnabled(false);
+    assert.equal(await loadYoutubeSummaryTemporaryChatEnabled(), false);
+    assert.equal(chromeStorage.store.youtubeSummaryTemporaryChatEnabled, false);
+
+    await saveYoutubeSummaryTemporaryChatEnabled(true);
+    assert.equal(await loadYoutubeSummaryTemporaryChatEnabled(), true);
+    assert.equal(chromeStorage.store.youtubeSummaryTemporaryChatEnabled, true);
   } finally {
     chromeStorage.restore();
   }
