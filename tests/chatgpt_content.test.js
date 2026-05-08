@@ -106,3 +106,43 @@ test('runChatgptSendFlow shows fallback modal when send control is missing', asy
   assert.equal(result.reason, 'send_not_found');
   assert.equal(Boolean(modal), true);
 });
+
+test('runChatgptSendFlow enables Temporary Chat before sending when requested', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <button aria-label="Temporary chat">Temporary</button>
+        <textarea id="composer"></textarea>
+        <button data-testid="send-button">Send</button>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const temporary = document.querySelector('[aria-label="Temporary chat"]');
+  const send = document.querySelector('[data-testid="send-button"]');
+
+  let temporaryClicked = false;
+  let sendClicked = false;
+
+  temporary.addEventListener('click', () => {
+    temporaryClicked = true;
+  });
+
+  send.addEventListener('click', (event) => {
+    event.preventDefault();
+    sendClicked = true;
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('temporary hello', {
+      maxAttempts: 1,
+      intervalMs: 1,
+      preferTemporaryChat: true,
+    })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(temporaryClicked, true);
+  assert.equal(sendClicked, true);
+});

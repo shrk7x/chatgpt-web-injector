@@ -5,6 +5,7 @@ import { renderTemplate } from './template.js';
 const MENU_ID = 'send-to-chatgpt';
 const MENU_ITEM_PREFIX = 'send-to-chatgpt-tpl-';
 const CHATGPT_URL = 'https://chatgpt.com/';
+const CHATGPT_TEMPORARY_URL = 'https://chatgpt.com/?temporary-chat=true';
 const TAB_WAIT_TIMEOUT_MS = 15000;
 
 let isMenuRebuildRunning = false;
@@ -45,14 +46,19 @@ async function sendWithTemplate(templateId, selectionText, tab) {
   await sendPromptToChatgpt(prompt);
 }
 
-async function sendPromptToChatgpt(prompt) {
-  const targetTab = await chrome.tabs.create({ url: CHATGPT_URL, active: true });
+async function sendPromptToChatgpt(prompt, options = {}) {
+  const targetUrl = options.preferTemporaryChat === true ? CHATGPT_TEMPORARY_URL : CHATGPT_URL;
+  const targetTab = await chrome.tabs.create({ url: targetUrl, active: true });
   await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
 
   const [result] = await chrome.scripting.executeScript({
     target: { tabId: targetTab.id },
     func: runChatgptSendFlow,
-    args: [prompt, { maxAttempts: 24, intervalMs: 250 }],
+    args: [prompt, {
+      maxAttempts: 24,
+      intervalMs: 250,
+      preferTemporaryChat: options.preferTemporaryChat === true,
+    }],
   });
 
   console.log('[ChatGPT Web Injector] Runtime send result:', result?.result || result);
@@ -66,7 +72,7 @@ async function sendYoutubeSummary(payload) {
     transcript: payload?.transcript || '',
   });
 
-  await sendPromptToChatgpt(prompt);
+  await sendPromptToChatgpt(prompt, { preferTemporaryChat: true });
 }
 
 async function rebuildContextMenuOnce() {
