@@ -4,7 +4,7 @@ export async function runChatgptSendFlow(prompt, options = {}) {
   const preferTemporaryChat = options.preferTemporaryChat === true;
   const fallbackId = 'chatgpt-web-injector-fallback';
 
-  const inputSelectors = ['textarea', "[contenteditable='true']", "div[role='textbox']"];
+  const inputSelectors = ['textarea', '[contenteditable]', "div[role='textbox']"];
   const sendSelectors = [
     "button[data-testid='send-button']",
     "button[data-testid*='send']",
@@ -156,12 +156,9 @@ export async function runChatgptSendFlow(prompt, options = {}) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const input = findFirst(inputSelectors);
-    const sendButton = findSendButton();
 
     if (!input) {
       lastReason = 'input_not_found';
-    } else if (!sendButton) {
-      lastReason = 'send_not_found';
     } else {
       try {
         if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
@@ -183,21 +180,24 @@ export async function runChatgptSendFlow(prompt, options = {}) {
       // Wait for React to process the injected text and enable the send button
       await new Promise((resolve) => { setTimeout(resolve, 300); });
 
-      // Re-query send button after wait — it may have become enabled
+      // Re-query send button after input — ChatGPT may only render it after text exists.
       const sendButtonReady = findSendButton();
 
       if (sendButtonReady && !sendButtonReady.disabled) {
         sendButtonReady.click();
-      } else {
-        // Fallback: dispatch Enter keydown on the input
+        return { ok: true, attempts: attempt };
+      } else if (sendButtonReady) {
+        // Fallback: dispatch Enter keydown on the input when the button exists but is not clickable yet.
         input.dispatchEvent(new KeyboardEvent('keydown', {
           key: 'Enter',
           code: 'Enter',
           bubbles: true,
           cancelable: true,
         }));
+        return { ok: true, attempts: attempt };
+      } else {
+        lastReason = 'send_not_found';
       }
-      return { ok: true, attempts: attempt };
     }
 
     if (attempt < maxAttempts) {

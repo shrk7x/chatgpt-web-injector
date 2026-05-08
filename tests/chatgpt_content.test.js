@@ -146,3 +146,74 @@ test('runChatgptSendFlow enables Temporary Chat before sending when requested', 
   assert.equal(temporaryClicked, true);
   assert.equal(sendClicked, true);
 });
+
+test('runChatgptSendFlow inserts prompt into plaintext-only contenteditable composer', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div id="composer" contenteditable="plaintext-only" role="textbox"></div>
+        <button data-testid="send-button">Send</button>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const composer = document.querySelector('#composer');
+  const send = document.querySelector('[data-testid="send-button"]');
+
+  document.execCommand = (_command, _showUi, value) => {
+    composer.textContent = value;
+    composer.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    return true;
+  };
+
+  let clicked = false;
+  send.addEventListener('click', (event) => {
+    event.preventDefault();
+    clicked = true;
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('plaintext hello', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(composer.textContent, 'plaintext hello');
+  assert.equal(clicked, true);
+});
+
+test('runChatgptSendFlow injects prompt before the send button appears', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <textarea id="composer"></textarea>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const textarea = document.querySelector('#composer');
+
+  let clicked = false;
+  textarea.addEventListener('input', () => {
+    if (document.querySelector('[data-testid="send-button"]')) {
+      return;
+    }
+
+    const send = document.createElement('button');
+    send.setAttribute('data-testid', 'send-button');
+    send.addEventListener('click', (event) => {
+      event.preventDefault();
+      clicked = true;
+    });
+    document.body.append(send);
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('late send button', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(textarea.value, 'late send button');
+  assert.equal(clicked, true);
+});
