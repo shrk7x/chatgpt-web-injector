@@ -182,6 +182,44 @@ test('runChatgptSendFlow inserts prompt into plaintext-only contenteditable comp
   assert.equal(clicked, true);
 });
 
+test('runChatgptSendFlow falls back when execCommand does not update contenteditable composer', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div id="composer" contenteditable="true" role="textbox"></div>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const composer = document.querySelector('#composer');
+
+  document.execCommand = () => false;
+
+  let clicked = false;
+  composer.addEventListener('input', () => {
+    if (document.querySelector('[aria-label="Submit message"]')) {
+      return;
+    }
+
+    const send = document.createElement('button');
+    send.setAttribute('aria-label', 'Submit message');
+    send.addEventListener('click', (event) => {
+      event.preventDefault();
+      clicked = true;
+    });
+    document.body.append(send);
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('fallback contenteditable hello', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(composer.textContent, 'fallback contenteditable hello');
+  assert.equal(clicked, true);
+});
+
 test('runChatgptSendFlow injects prompt before the send button appears', async () => {
   const dom = new JSDOM(`
     <html>
@@ -215,5 +253,34 @@ test('runChatgptSendFlow injects prompt before the send button appears', async (
 
   assert.equal(result.ok, true);
   assert.equal(textarea.value, 'late send button');
+  assert.equal(clicked, true);
+});
+
+test('runChatgptSendFlow recognizes Submit message as the send button', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <textarea id="composer"></textarea>
+        <button aria-label="Submit message">Submit</button>
+      </body>
+    </html>
+  `);
+
+  const { document } = dom.window;
+  const textarea = document.querySelector('#composer');
+  const submit = document.querySelector('[aria-label="Submit message"]');
+
+  let clicked = false;
+  submit.addEventListener('click', (event) => {
+    event.preventDefault();
+    clicked = true;
+  });
+
+  const result = await withDom(dom, () =>
+    runChatgptSendFlow('submit hello', { maxAttempts: 1, intervalMs: 1 })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(textarea.value, 'submit hello');
   assert.equal(clicked, true);
 });
