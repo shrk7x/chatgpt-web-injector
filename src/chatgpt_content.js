@@ -103,6 +103,14 @@ export async function runChatgptSendFlow(prompt, options = {}) {
       control.getAttribute('data-state') === 'checked';
   }
 
+  function isTemporaryChatUrl() {
+    try {
+      return new window.URL(window.location.href).searchParams.get('temporary-chat') === 'true';
+    } catch (_error) {
+      return false;
+    }
+  }
+
   async function enableTemporaryChat() {
     const labelPattern = /temporary chat|temporary|临时|臨時|暫時/i;
     const controls = Array.from(document.querySelectorAll('button, [role="button"], a'));
@@ -207,7 +215,7 @@ export async function runChatgptSendFlow(prompt, options = {}) {
   }
 
   let lastReason = 'unknown';
-  if (preferTemporaryChat) {
+  if (preferTemporaryChat && !isTemporaryChatUrl()) {
     try {
       await enableTemporaryChat();
     } catch (err) {
@@ -238,14 +246,7 @@ export async function runChatgptSendFlow(prompt, options = {}) {
         sendButtonReady.click();
         return { ok: true, attempts: attempt };
       } else if (sendButtonReady) {
-        // Fallback: dispatch Enter keydown on the input when the button exists but is not clickable yet.
-        input.dispatchEvent(new KeyboardEvent('keydown', {
-          key: 'Enter',
-          code: 'Enter',
-          bubbles: true,
-          cancelable: true,
-        }));
-        return { ok: true, attempts: attempt };
+        lastReason = 'send_disabled';
       } else {
         lastReason = 'send_not_found';
       }
