@@ -461,7 +461,7 @@ function createButton() {
   button.type = 'button';
   button.title = 'Summarize with ChatGPT';
   button.setAttribute('aria-label', 'Summarize with ChatGPT');
-  button.textContent = 'AI';
+  button.innerHTML = `<span style="margin-right: 4px;">AI</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
   button.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -476,7 +476,7 @@ function createTranscriptButton() {
   button.type = 'button';
   button.title = 'Show YouTube transcript';
   button.setAttribute('aria-label', 'Show YouTube transcript');
-  button.textContent = 'TR';
+  button.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg><span>Transcript</span>`;
   button.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
