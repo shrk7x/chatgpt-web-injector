@@ -76,6 +76,80 @@ test('YouTube transcript panel button clicks the native transcript control', asy
   await Promise.resolve();
 
   assert.equal(nativeTranscriptClicked, true);
+  assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
+});
+
+test('YouTube transcript panel button opens when stale transcript DOM is hidden', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-engagement-panel-section-list-renderer visibility="ENGAGEMENT_PANEL_VISIBILITY_HIDDEN">
+          <ytd-transcript-segment-renderer>
+            <span class="segment-timestamp">0:01</span>
+            <span class="segment-text">Stale closed transcript</span>
+          </ytd-transcript-segment-renderer>
+        </ytd-engagement-panel-section-list-renderer>
+        <button aria-label="Show transcript">Show transcript</button>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let nativeTranscriptClicked = false;
+  dom.window.document.querySelector('[aria-label="Show transcript"]').addEventListener('click', () => {
+    nativeTranscriptClicked = true;
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await Promise.resolve();
+
+  assert.equal(nativeTranscriptClicked, true);
+  assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
+});
+
+test('YouTube transcript panel button closes an open transcript panel', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-engagement-panel-section-list-renderer>
+          <button aria-label="Close transcript">Close</button>
+          <ytd-transcript-segment-renderer>
+            <span class="segment-timestamp">0:01</span>
+            <span class="segment-text">Open transcript</span>
+          </ytd-transcript-segment-renderer>
+        </ytd-engagement-panel-section-list-renderer>
+        <button aria-label="Show transcript">Show transcript</button>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let closeClicked = false;
+  dom.window.document.querySelector('[aria-label="Close transcript"]').addEventListener('click', () => {
+    closeClicked = true;
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await Promise.resolve();
+
+  assert.equal(closeClicked, true);
+  assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
 });
 
 test('YouTube summary keeps hour timestamps when reading visible transcript DOM', async () => {

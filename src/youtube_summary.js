@@ -161,11 +161,48 @@ function normalizeTimestamp(timestamp) {
   return '00:00';
 }
 
+function isElementVisible(element) {
+  if (!element) {
+    return false;
+  }
+
+  let current = element;
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
+    if (
+      current.hidden ||
+      current.getAttribute('aria-hidden') === 'true'
+    ) {
+      return false;
+    }
+
+    const youtubeVisibility = current.getAttribute('visibility') || '';
+    if (
+      youtubeVisibility.includes('HIDDEN') ||
+      youtubeVisibility.includes('COLLAPSED')
+    ) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(current);
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return false;
+    }
+
+    current = current.parentElement;
+  }
+
+  return true;
+}
+
 function readTranscriptFromDom() {
   const segmentNodes = Array.from(document.querySelectorAll('ytd-transcript-segment-renderer'));
   const lines = [];
 
   for (const segment of segmentNodes) {
+    if (!isElementVisible(segment)) {
+      continue;
+    }
+
     const timestamp = segment.querySelector('.segment-timestamp')?.textContent?.trim() || '';
     const text = segment.querySelector('.segment-text')?.textContent?.trim() || '';
 
@@ -178,6 +215,10 @@ function readTranscriptFromDom() {
   const transcriptHelpers = window.ChatgptWebInjectorYoutubeTranscript;
 
   for (const segment of modernSegmentNodes) {
+    if (!isElementVisible(segment)) {
+      continue;
+    }
+
     const timestamp = segment.querySelector('.ytwTranscriptSegmentViewModelTimestamp')?.textContent?.trim() || '';
     const text = Array.from(segment.querySelectorAll('span.ytAttributedStringHost'))
       .map((node) => node.textContent?.trim() || '')
@@ -199,6 +240,28 @@ function readTranscriptFromDom() {
   return lines.join('\n');
 }
 
+function findVisibleTranscriptSegment() {
+  const selectors = [
+    'ytd-transcript-segment-renderer',
+    'transcript-segment-view-model',
+  ].join(', ');
+  return Array.from(document.querySelectorAll(selectors))
+    .find((segment) => isElementVisible(segment)) || null;
+}
+
+function findTranscriptPanel() {
+  const segment = findVisibleTranscriptSegment();
+  if (!segment) {
+    return null;
+  }
+
+  return segment.closest([
+    'ytd-engagement-panel-section-list-renderer',
+    'ytd-transcript-renderer',
+    'ytd-transcript-search-panel-renderer',
+  ].join(', ')) || segment.parentElement;
+}
+
 function findTranscriptButton() {
   const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿|转写文稿|內容轉文字|内容转文字/i;
   const buttons = Array.from(document.querySelectorAll('button'));
@@ -216,6 +279,38 @@ function findTranscriptButton() {
       button.textContent || '',
     ].join(' ');
     return labelPattern.test(label);
+  }) || null;
+}
+
+function findTranscriptCloseButton() {
+  const panel = findTranscriptPanel();
+  if (!panel) {
+    return null;
+  }
+
+  const closePattern = /close|dismiss|关闭|關閉/i;
+  const buttons = Array.from(panel.querySelectorAll([
+    'button',
+    '[role="button"]',
+    'yt-icon-button',
+    'tp-yt-paper-icon-button',
+  ].join(', ')));
+
+  return buttons.find((button) => {
+    if (
+      button.id === YOUTUBE_SUMMARY_BUTTON_ID ||
+      button.id === YOUTUBE_TRANSCRIPT_BUTTON_ID ||
+      !isElementVisible(button)
+    ) {
+      return false;
+    }
+
+    const label = [
+      button.getAttribute('aria-label') || '',
+      button.getAttribute('title') || '',
+      button.textContent || '',
+    ].join(' ');
+    return closePattern.test(label);
   }) || null;
 }
 
@@ -263,9 +358,15 @@ async function fetchTranscriptFromDom() {
   return openedTranscript;
 }
 
-async function openTranscriptPanel() {
-  if (readTranscriptFromDom()) {
-    showStatus('Transcript open');
+async function toggleTranscriptPanel() {
+  if (findVisibleTranscriptSegment()) {
+    const closeButton = findTranscriptCloseButton();
+    if (!closeButton) {
+      showStatus('Transcript unavailable');
+      return;
+    }
+
+    closeButton.click();
     return;
   }
 
@@ -276,7 +377,6 @@ async function openTranscriptPanel() {
   }
 
   transcriptButton.click();
-  showStatus('Transcript open');
 }
 
 async function fetchCurrentPlayerResponse() {
@@ -480,7 +580,7 @@ function createTranscriptButton() {
   button.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
-    openTranscriptPanel().catch((error) => {
+    toggleTranscriptPanel().catch((error) => {
       console.warn('[ChatGPT Web Injector] YouTube transcript panel failed:', error);
       showStatus('Transcript unavailable');
     });
