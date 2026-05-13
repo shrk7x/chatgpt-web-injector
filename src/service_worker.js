@@ -97,7 +97,7 @@ export async function executeChatgptSendFlow(tabId, prompt, options = {}) {
         throw error;
       }
 
-      await waitForTabComplete(tabId, TAB_WAIT_TIMEOUT_MS);
+      await waitForChatgptTabReady(tabId);
       await new Promise((resolve) => { setTimeout(resolve, injectRetryMs); });
     }
   }
@@ -105,6 +105,12 @@ export async function executeChatgptSendFlow(tabId, prompt, options = {}) {
   throw new Error('chatgpt_injection_failed');
 }
 
+/**
+ * Waits for the ChatGPT tab to be ready.
+ * @param {number|string} tabId - The identifier of the tab.
+ * @param {number} [timeoutMs=TAB_WAIT_TIMEOUT_MS] - Optional timeout in milliseconds.
+ * @returns {Promise<void>} Resolves when the tab is ready or continues after a tab_load_timeout.
+ */
 export async function waitForChatgptTabReady(tabId, timeoutMs = TAB_WAIT_TIMEOUT_MS) {
   try {
     await waitForTabComplete(tabId, timeoutMs);
@@ -132,7 +138,7 @@ async function sendWithTemplate(templateId, selectionText, tab) {
 async function sendPromptToChatgpt(prompt, options = {}) {
   const targetUrl = getChatgptTargetUrl(options.preferTemporaryChat === true);
   const targetTab = await chrome.tabs.create({ url: targetUrl, active: true });
-  await waitForChatgptTabReady(targetTab.id, TAB_WAIT_TIMEOUT_MS);
+  await waitForChatgptTabReady(targetTab.id);
 
   const result = await executeChatgptSendFlow(targetTab.id, prompt, {
     maxAttempts: 24,
