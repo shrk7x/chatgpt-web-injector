@@ -105,6 +105,18 @@ export async function executeChatgptSendFlow(tabId, prompt, options = {}) {
   throw new Error('chatgpt_injection_failed');
 }
 
+export async function waitForChatgptTabReady(tabId, timeoutMs = TAB_WAIT_TIMEOUT_MS) {
+  try {
+    await waitForTabComplete(tabId, timeoutMs);
+  } catch (error) {
+    if (error?.message !== 'tab_load_timeout') {
+      throw error;
+    }
+
+    console.warn('[ChatGPT Web Injector] ChatGPT tab load timed out, continuing injection:', error);
+  }
+}
+
 async function sendWithTemplate(templateId, selectionText, tab) {
   const payload = {
     selection: selectionText || '',
@@ -120,7 +132,7 @@ async function sendWithTemplate(templateId, selectionText, tab) {
 async function sendPromptToChatgpt(prompt, options = {}) {
   const targetUrl = getChatgptTargetUrl(options.preferTemporaryChat === true);
   const targetTab = await chrome.tabs.create({ url: targetUrl, active: true });
-  await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
+  await waitForChatgptTabReady(targetTab.id, TAB_WAIT_TIMEOUT_MS);
 
   const result = await executeChatgptSendFlow(targetTab.id, prompt, {
     maxAttempts: 24,
