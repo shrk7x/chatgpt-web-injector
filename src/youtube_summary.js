@@ -252,7 +252,8 @@ function findVisibleTranscriptSegment() {
 function findTranscriptPanel() {
   const segment = findVisibleTranscriptSegment();
   if (!segment) {
-    return null;
+    return Array.from(document.querySelectorAll('ytd-engagement-panel-section-list-renderer'))
+      .find((panel) => isElementVisible(panel)) || null;
   }
 
   return segment.closest([
@@ -262,14 +263,14 @@ function findTranscriptPanel() {
   ].join(', ')) || segment.parentElement;
 }
 
-function isHiddenTranscriptPanelButton(button) {
+function isTranscriptPanelButton(button) {
   const panel = button.closest([
     'ytd-engagement-panel-section-list-renderer',
     'ytd-transcript-renderer',
     'ytd-transcript-search-panel-renderer',
   ].join(', '));
 
-  return Boolean(panel && !isElementVisible(panel));
+  return Boolean(panel);
 }
 
 function findTranscriptButton({ allowHidden = false } = {}) {
@@ -280,7 +281,7 @@ function findTranscriptButton({ allowHidden = false } = {}) {
     if (
       button.id === YOUTUBE_SUMMARY_BUTTON_ID ||
       button.id === YOUTUBE_TRANSCRIPT_BUTTON_ID ||
-      isHiddenTranscriptPanelButton(button) ||
+      isTranscriptPanelButton(button) ||
       (!allowHidden && !isElementVisible(button))
     ) {
       return false;
