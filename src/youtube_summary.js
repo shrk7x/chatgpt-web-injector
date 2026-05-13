@@ -9,6 +9,14 @@ const MOUNT_DEBOUNCE_MS = 150;
 const OBSERVER_RETRY_MS = 500;
 const TRANSCRIPT_DOM_WAIT_MS = 3000;
 const TRANSCRIPT_DOM_POLL_MS = 200;
+const TRANSCRIPT_PANEL_SELECTOR = [
+  'ytd-transcript-renderer',
+  'ytd-transcript-search-panel-renderer',
+].join(', ');
+const TRANSCRIPT_SEGMENT_SELECTOR = [
+  'ytd-transcript-segment-renderer',
+  'transcript-segment-view-model',
+].join(', ');
 const DEBUG = false;
 
 let lastUrl = '';
@@ -241,19 +249,46 @@ function readTranscriptFromDom() {
 }
 
 function findVisibleTranscriptSegment() {
-  const selectors = [
-    'ytd-transcript-segment-renderer',
-    'transcript-segment-view-model',
-  ].join(', ');
-  return Array.from(document.querySelectorAll(selectors))
+  return Array.from(document.querySelectorAll(TRANSCRIPT_SEGMENT_SELECTOR))
     .find((segment) => isElementVisible(segment)) || null;
+}
+
+function getButtonLabel(button) {
+  return [
+    button.getAttribute('aria-label') || '',
+    button.getAttribute('title') || '',
+    button.textContent || '',
+  ].join(' ');
+}
+
+function isTranscriptSegmentControl(button) {
+  return /\b\d{1,2}:\d{2}(?::\d{2})?\b/.test(getButtonLabel(button));
+}
+
+function panelHasTranscriptContent(panel) {
+  if (!panel) {
+    return false;
+  }
+
+  if (
+    panel.matches(TRANSCRIPT_PANEL_SELECTOR) ||
+    panel.querySelector([
+      TRANSCRIPT_PANEL_SELECTOR,
+      TRANSCRIPT_SEGMENT_SELECTOR,
+    ].join(', '))
+  ) {
+    return true;
+  }
+
+  return Array.from(panel.querySelectorAll('button, [role="button"]'))
+    .some((button) => isTranscriptSegmentControl(button));
 }
 
 function findTranscriptPanel() {
   const segment = findVisibleTranscriptSegment();
   if (!segment) {
     return Array.from(document.querySelectorAll('ytd-engagement-panel-section-list-renderer'))
-      .find((panel) => isElementVisible(panel)) || null;
+      .find((panel) => isElementVisible(panel) && panelHasTranscriptContent(panel)) || null;
   }
 
   return segment.closest([
@@ -264,13 +299,17 @@ function findTranscriptPanel() {
 }
 
 function isTranscriptPanelButton(button) {
-  const panel = button.closest([
-    'ytd-engagement-panel-section-list-renderer',
-    'ytd-transcript-renderer',
-    'ytd-transcript-search-panel-renderer',
-  ].join(', '));
+  const transcriptContainer = button.closest(TRANSCRIPT_PANEL_SELECTOR);
+  if (transcriptContainer) {
+    return true;
+  }
 
-  return Boolean(panel);
+  const panel = button.closest('ytd-engagement-panel-section-list-renderer');
+  if (panel && !isElementVisible(panel)) {
+    return true;
+  }
+
+  return panelHasTranscriptContent(panel);
 }
 
 function findTranscriptButton({ allowHidden = false } = {}) {
@@ -287,11 +326,7 @@ function findTranscriptButton({ allowHidden = false } = {}) {
       return false;
     }
 
-    const label = [
-      button.getAttribute('aria-label') || '',
-      button.textContent || '',
-    ].join(' ');
-    return labelPattern.test(label);
+    return labelPattern.test(getButtonLabel(button));
   }) || null;
 }
 
