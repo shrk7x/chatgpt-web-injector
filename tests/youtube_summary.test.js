@@ -198,6 +198,44 @@ test('YouTube transcript panel button closes an open transcript panel', async ()
   assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
 });
 
+test('YouTube transcript panel button closes an open transcript panel with an unlabeled dismiss button', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-engagement-panel-section-list-renderer visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED">
+          <button id="dismiss-button"></button>
+          <button aria-label="0:05 transcript segment">Transcript segment</button>
+        </ytd-engagement-panel-section-list-renderer>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let closeClicked = false;
+  let segmentClicked = false;
+  dom.window.document.getElementById('dismiss-button').addEventListener('click', () => {
+    closeClicked = true;
+  });
+  dom.window.document.querySelector('[aria-label="0:05 transcript segment"]').addEventListener('click', () => {
+    segmentClicked = true;
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await Promise.resolve();
+
+  assert.equal(closeClicked, true);
+  assert.equal(segmentClicked, false);
+  assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
+});
+
 test('YouTube transcript panel button does not click transcript segment buttons when panel is open', async () => {
   const dom = new JSDOM(`
     <html>

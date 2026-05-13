@@ -318,6 +318,8 @@ function findTranscriptCloseButton(panel = findTranscriptPanel()) {
     }
 
     const label = [
+      button.id || '',
+      button.className || '',
       button.getAttribute('aria-label') || '',
       button.getAttribute('title') || '',
       button.textContent || '',
