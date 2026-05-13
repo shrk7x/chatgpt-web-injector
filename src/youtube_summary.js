@@ -314,16 +314,13 @@ function isTranscriptPanelButton(button) {
   }
 
   const panel = button.closest('ytd-engagement-panel-section-list-renderer');
-  if (panel && !isElementVisible(panel)) {
-    return true;
-  }
-
   return panelHasTranscriptContent(panel);
 }
 
 function findTranscriptButton({ allowHidden = false } = {}) {
   const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿|转写文稿|內容轉文字|内容转文字/i;
-  const buttons = Array.from(document.querySelectorAll('button'));
+  // 扩大查找范围：包含 button 标签和常见的 YouTube 自定义按钮元素
+  const buttons = Array.from(document.querySelectorAll('button, tp-yt-paper-button, [role="button"]'));
 
   return buttons.find((button) => {
     if (
@@ -337,6 +334,27 @@ function findTranscriptButton({ allowHidden = false } = {}) {
 
     return labelPattern.test(getButtonLabel(button));
   }) || null;
+}
+
+function expandDescription() {
+  const container = document.querySelector('ytd-watch-metadata') || document.querySelector('ytd-video-secondary-info-renderer');
+  if (!container) return;
+
+  const expandPattern = /\.\.\.more|show more|展开|展開|顯示更多|显示更多/i;
+  const expandElements = container.querySelectorAll('tp-yt-paper-button, button, [id="expand"], ytd-button-renderer, div[role="button"]');
+  
+  for (const el of expandElements) {
+    const text = (el.textContent || '').trim();
+    if (expandPattern.test(text) && isElementVisible(el)) {
+      el.click();
+      return;
+    }
+  }
+  
+  const oldExpand = container.querySelector('#expand');
+  if (oldExpand && isElementVisible(oldExpand)) {
+    oldExpand.click();
+  }
 }
 
 function findTranscriptCloseButton(panel = findTranscriptPanel()) {
@@ -390,6 +408,12 @@ async function waitForTranscriptButton() {
 
   while (!transcriptButton && Date.now() - startedAt < TRANSCRIPT_DOM_WAIT_MS) {
     await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
+    
+    // 如果找了一半的时间还没找到，尝试展开视频描述框，因为按钮可能被隐藏且未渲染
+    if (!transcriptButton && Date.now() - startedAt > (TRANSCRIPT_DOM_WAIT_MS / 2)) {
+      expandDescription();
+    }
+    
     transcriptButton = findTranscriptButton() || findTranscriptButton({ allowHidden: true });
   }
 
