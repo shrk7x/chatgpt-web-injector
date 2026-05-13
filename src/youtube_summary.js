@@ -270,6 +270,15 @@ function panelHasTranscriptContent(panel) {
     return false;
   }
 
+  const targetId = panel.getAttribute('target-id');
+  if (targetId === 'engagement-panel-transcript') {
+    return true;
+  }
+
+  if (targetId && !targetId.includes('transcript')) {
+    return false;
+  }
+
   if (
     panel.matches(TRANSCRIPT_PANEL_SELECTOR) ||
     panel.querySelector([
