@@ -121,6 +121,46 @@ test('YouTube transcript panel button opens when stale transcript DOM is hidden'
   assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
 });
 
+test('YouTube transcript panel button falls back to a hidden native transcript control', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-engagement-panel-section-list-renderer visibility="ENGAGEMENT_PANEL_VISIBILITY_HIDDEN">
+          <button aria-label="Show transcript">Stale panel transcript</button>
+        </ytd-engagement-panel-section-list-renderer>
+        <div hidden>
+          <button aria-label="Show transcript">Native transcript</button>
+        </div>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let staleTranscriptClicked = false;
+  let nativeTranscriptClicked = false;
+  dom.window.document.querySelector('ytd-engagement-panel-section-list-renderer button').addEventListener('click', () => {
+    staleTranscriptClicked = true;
+  });
+  dom.window.document.querySelector('div[hidden] button').addEventListener('click', () => {
+    nativeTranscriptClicked = true;
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await Promise.resolve();
+
+  assert.equal(staleTranscriptClicked, false);
+  assert.equal(nativeTranscriptClicked, true);
+  assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
+});
+
 test('YouTube transcript panel button closes an open transcript panel', async () => {
   const dom = new JSDOM(`
     <html>
@@ -241,6 +281,56 @@ test('YouTube summary keeps hour timestamps when reading visible transcript DOM'
   await new Promise((resolve) => { setTimeout(resolve, 20); });
 
   assert.equal(messages[0].payload.transcript, '[01:05:30] Past the first hour');
+});
+
+test('YouTube summary reads transcript after opening a hidden native transcript control', async () => {
+  const messages = [];
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <h1 class="ytd-watch-metadata">Fallback video</h1>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <div hidden>
+          <button aria-label="Show transcript">Native transcript</button>
+        </div>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  dom.window.fetch = async () => {
+    throw new Error('network unavailable');
+  };
+  dom.window.document.querySelector('[aria-label="Show transcript"]').addEventListener('click', () => {
+    const panel = dom.window.document.createElement('ytd-engagement-panel-section-list-renderer');
+    panel.innerHTML = `
+      <ytd-transcript-segment-renderer>
+        <span class="segment-timestamp">0:05</span>
+        <span class="segment-text">Fallback transcript line</span>
+      </ytd-transcript-segment-renderer>
+    `;
+    dom.window.document.body.append(panel);
+  });
+
+  const chromeMock = {
+    runtime: {
+      sendMessage(message) {
+        messages.push(message);
+      },
+    },
+  };
+
+  loadYoutubeSummary(dom, { sendMessage: chromeMock.runtime.sendMessage });
+  dom.window.chrome = chromeMock;
+
+  dom.window.document.getElementById('chatgpt-web-injector-youtube-summary').click();
+  await new Promise((resolve) => { setTimeout(resolve, 250); });
+
+  assert.equal(messages[0].payload.transcript, '[00:05] Fallback transcript line');
 });
 
 test('loadYoutubeSummary restores chrome when script loading fails', () => {

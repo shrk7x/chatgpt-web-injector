@@ -262,7 +262,17 @@ function findTranscriptPanel() {
   ].join(', ')) || segment.parentElement;
 }
 
-function findTranscriptButton() {
+function isHiddenTranscriptPanelButton(button) {
+  const panel = button.closest([
+    'ytd-engagement-panel-section-list-renderer',
+    'ytd-transcript-renderer',
+    'ytd-transcript-search-panel-renderer',
+  ].join(', '));
+
+  return Boolean(panel && !isElementVisible(panel));
+}
+
+function findTranscriptButton({ allowHidden = false } = {}) {
   const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿|转写文稿|內容轉文字|内容转文字/i;
   const buttons = Array.from(document.querySelectorAll('button'));
 
@@ -270,7 +280,8 @@ function findTranscriptButton() {
     if (
       button.id === YOUTUBE_SUMMARY_BUTTON_ID ||
       button.id === YOUTUBE_TRANSCRIPT_BUTTON_ID ||
-      !isElementVisible(button)
+      isHiddenTranscriptPanelButton(button) ||
+      (!allowHidden && !isElementVisible(button))
     ) {
       return false;
     }
@@ -328,11 +339,11 @@ async function waitForTranscriptDom() {
 
 async function waitForTranscriptButton() {
   const startedAt = Date.now();
-  let transcriptButton = findTranscriptButton();
+  let transcriptButton = findTranscriptButton() || findTranscriptButton({ allowHidden: true });
 
   while (!transcriptButton && Date.now() - startedAt < TRANSCRIPT_DOM_WAIT_MS) {
     await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
-    transcriptButton = findTranscriptButton();
+    transcriptButton = findTranscriptButton() || findTranscriptButton({ allowHidden: true });
   }
 
   return transcriptButton;
