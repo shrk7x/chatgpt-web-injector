@@ -323,7 +323,7 @@ function isTranscriptPanelButton(button) {
 
 function findTranscriptButton({ allowHidden = false } = {}) {
   const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿|转写文稿|內容轉文字|内容转文字/i;
-  // 扩大查找范围：包含 button 标签和常见的 YouTube 自定义按钮元素
+  // Expand search scope: include standard button tags and common YouTube custom button elements
   const buttons = Array.from(document.querySelectorAll('button, tp-yt-paper-button, ytd-button-renderer, [role="button"]'));
 
   return buttons.find((button) => {
@@ -417,10 +417,9 @@ async function waitForTranscriptButton() {
   while (!transcriptButton && Date.now() - startedAt < TRANSCRIPT_DOM_WAIT_MS) {
     await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
     
-    // 如果找了一半的时间还没找到，尝试展开视频描述框，因为按钮可能被隐藏且未渲染
+    // Try to expand the video description if the button is not found within half the wait time, as it might be hidden and unrendered.
     if (!transcriptButton && !descriptionExpanded && Date.now() - startedAt > (TRANSCRIPT_DOM_WAIT_MS / 2)) {
-      expandDescription();
-      descriptionExpanded = true;
+      descriptionExpanded = expandDescription();
     }
     
     transcriptButton = findTranscriptButton() || findTranscriptButton({ allowHidden: true });
