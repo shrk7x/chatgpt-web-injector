@@ -321,23 +321,36 @@ function isTranscriptPanelButton(button) {
   return panelHasTranscriptContent(panel);
 }
 
+function getActionableTranscriptButton(button) {
+  if (button.tagName !== 'YTD-BUTTON-RENDERER') {
+    return button;
+  }
+
+  return button.querySelector('button, tp-yt-paper-button, [role="button"]') || button;
+}
+
 function findTranscriptButton({ allowHidden = false } = {}) {
   const labelPattern = /show transcript|transcript|文字稿|转录|轉錄|逐字稿|转写文稿|內容轉文字|内容转文字/i;
   // Expand search scope: include standard button tags and common YouTube custom button elements
   const buttons = Array.from(document.querySelectorAll('button, tp-yt-paper-button, ytd-button-renderer, [role="button"]'));
 
-  return buttons.find((button) => {
+  for (const button of buttons) {
+    const actionableButton = getActionableTranscriptButton(button);
     if (
-      button.id === YOUTUBE_SUMMARY_BUTTON_ID ||
-      button.id === YOUTUBE_TRANSCRIPT_BUTTON_ID ||
-      isTranscriptPanelButton(button) ||
-      (!allowHidden && !isElementVisible(button))
+      actionableButton.id === YOUTUBE_SUMMARY_BUTTON_ID ||
+      actionableButton.id === YOUTUBE_TRANSCRIPT_BUTTON_ID ||
+      isTranscriptPanelButton(actionableButton) ||
+      (!allowHidden && !isElementVisible(actionableButton))
     ) {
-      return false;
+      continue;
     }
 
-    return labelPattern.test(getButtonLabel(button));
-  }) || null;
+    if (labelPattern.test(getButtonLabel(actionableButton))) {
+      return actionableButton;
+    }
+  }
+
+  return null;
 }
 
 function expandDescription() {
@@ -346,7 +359,7 @@ function expandDescription() {
     return;
   }
 
-  const expandPattern = /\.\.\.more|show more|展开|展開|顯示更多|显示更多/i;
+  const expandPattern = /\.\.\.(?:more|更多)|show more|展开|展開|顯示更多|显示更多/i;
   const expandElements = container.querySelectorAll('tp-yt-paper-button, button, [id="expand"], ytd-button-renderer, [role="button"]');
 
   for (const el of expandElements) {
@@ -411,21 +424,20 @@ async function waitForTranscriptDom() {
 
 async function waitForTranscriptButton() {
   const startedAt = Date.now();
-  let transcriptButton = findTranscriptButton() || findTranscriptButton({ allowHidden: true });
-  let descriptionExpanded = false;
+  let transcriptButton = findTranscriptButton();
+  const descriptionExpanded = expandDescription();
+
+  if (!transcriptButton && !descriptionExpanded) {
+    transcriptButton = findTranscriptButton({ allowHidden: true });
+  }
 
   while (!transcriptButton && Date.now() - startedAt < TRANSCRIPT_DOM_WAIT_MS) {
     await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
-    
-    // Try to expand the video description if the button is not found within half the wait time, as it might be hidden and unrendered.
-    if (!transcriptButton && !descriptionExpanded && Date.now() - startedAt > (TRANSCRIPT_DOM_WAIT_MS / 2)) {
-      descriptionExpanded = expandDescription();
-    }
-    
-    transcriptButton = findTranscriptButton() || findTranscriptButton({ allowHidden: true });
+
+    transcriptButton = findTranscriptButton();
   }
 
-  return transcriptButton;
+  return transcriptButton || findTranscriptButton({ allowHidden: true });
 }
 
 async function fetchTranscriptFromDom() {

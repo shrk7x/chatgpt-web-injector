@@ -79,6 +79,43 @@ test('YouTube transcript panel button clicks the native transcript control', asy
   assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
 });
 
+test('YouTube transcript panel button clicks the nested native button inside renderer wrappers', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-button-renderer>
+          Show transcript
+          <button aria-label="Show transcript">Show transcript</button>
+        </ytd-button-renderer>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let wrapperClicked = false;
+  let nativeTranscriptClicked = false;
+  dom.window.document.querySelector('ytd-button-renderer').addEventListener('click', (event) => {
+    wrapperClicked = event.target.tagName === 'YTD-BUTTON-RENDERER';
+  });
+  dom.window.document.querySelector('ytd-button-renderer button').addEventListener('click', () => {
+    nativeTranscriptClicked = true;
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await Promise.resolve();
+
+  assert.equal(wrapperClicked, false);
+  assert.equal(nativeTranscriptClicked, true);
+});
+
 test('YouTube transcript panel button opens when stale transcript DOM is hidden', async () => {
   const dom = new JSDOM(`
     <html>
@@ -355,6 +392,52 @@ test('YouTube transcript panel button expands description once before opening tr
   assert.equal(expandClicks, 1);
   assert.equal(nativeTranscriptClicked, true);
   assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
+});
+
+test('YouTube transcript panel button expands Chinese collapsed description before using hidden controls', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-watch-metadata>
+          <tp-yt-paper-button id="expand">...更多</tp-yt-paper-button>
+          <div hidden>
+            <button aria-label="内容转文字">Hidden transcript</button>
+          </div>
+        </ytd-watch-metadata>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let hiddenTranscriptClicked = false;
+  let visibleTranscriptClicked = false;
+  const expandButton = dom.window.document.getElementById('expand');
+  dom.window.document.querySelector('[aria-label="内容转文字"]').addEventListener('click', () => {
+    hiddenTranscriptClicked = true;
+  });
+  expandButton.addEventListener('click', () => {
+    const transcriptButton = dom.window.document.createElement('button');
+    transcriptButton.setAttribute('aria-label', '内容转文字');
+    transcriptButton.textContent = '内容转文字';
+    transcriptButton.addEventListener('click', () => {
+      visibleTranscriptClicked = true;
+    });
+    dom.window.document.body.append(transcriptButton);
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await new Promise((resolve) => { setTimeout(resolve, 250); });
+
+  assert.equal(hiddenTranscriptClicked, false);
+  assert.equal(visibleTranscriptClicked, true);
 });
 
 test('YouTube transcript panel button reopens after closing the transcript panel', async () => {
