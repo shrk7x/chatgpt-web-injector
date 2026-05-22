@@ -8,6 +8,22 @@ const DEBUG = false;
 let showTimer = null;
 let lastPointerPosition = null;
 let suppressNextSelection = false;
+let tooltipEnabled = true;
+
+if (chrome?.storage?.sync) {
+  chrome.storage.sync.get(['showSelectionTooltip'], (data) => {
+    tooltipEnabled = data.showSelectionTooltip !== false;
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' && 'showSelectionTooltip' in changes) {
+      tooltipEnabled = changes.showSelectionTooltip.newValue !== false;
+      if (!tooltipEnabled) {
+        removeTooltip();
+      }
+    }
+  });
+}
 
 function log(...args) {
   if (DEBUG) {
@@ -119,6 +135,10 @@ function createTooltip(x, y) {
 }
 
 function processSelection() {
+  if (!tooltipEnabled) {
+    removeTooltip();
+    return;
+  }
   if (suppressNextSelection) {
     suppressNextSelection = false;
     return;

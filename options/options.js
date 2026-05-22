@@ -3,11 +3,13 @@ import {
   loadTemplates,
   loadYoutubeSummaryTemporaryChatEnabled,
   loadYoutubeSummaryTemplate,
+  loadSelectionTooltipEnabled,
   makeId,
   resetYoutubeSummaryTemplate,
   saveTemplates,
   saveYoutubeSummaryTemporaryChatEnabled,
   saveYoutubeSummaryTemplate,
+  saveSelectionTooltipEnabled,
 } from '../src/storage.js';
 
 const listEl = document.getElementById('template-list');
@@ -21,6 +23,7 @@ const youtubeBodyInput = document.getElementById('youtube-tpl-body');
 const youtubeTemporaryChatInput = document.getElementById('youtube-temporary-chat');
 const saveYoutubeTplBtn = document.getElementById('save-youtube-tpl');
 const resetYoutubeTplBtn = document.getElementById('reset-youtube-tpl');
+const showSelectionTooltipInput = document.getElementById('show-selection-tooltip');
 const statusEl = document.getElementById('status');
 
 let state = { templates: [], activeTemplateId: '' };
@@ -222,10 +225,23 @@ youtubeTemporaryChatInput.addEventListener('change', () => {
   });
 });
 
+showSelectionTooltipInput.addEventListener('change', () => {
+  const nextChecked = showSelectionTooltipInput.checked;
+
+  saveSelectionTooltipEnabled(nextChecked).then(() => {
+    setStatus('Settings saved.');
+  }).catch((err) => {
+    showSelectionTooltipInput.checked = !nextChecked;
+    console.error('[ChatGPT Web Injector] Tooltip preference save failed:', err);
+    setStatus('Save failed. Please try again.');
+  });
+});
+
 async function init() {
   state = await loadTemplates();
   youtubeBodyInput.value = await loadYoutubeSummaryTemplate();
   youtubeTemporaryChatInput.checked = await loadYoutubeSummaryTemporaryChatEnabled();
+  showSelectionTooltipInput.checked = await loadSelectionTooltipEnabled();
   renderList();
 
   if (window.location.hash === '#youtube-summary-template') {

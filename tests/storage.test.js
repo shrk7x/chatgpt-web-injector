@@ -8,6 +8,8 @@ import {
   resetYoutubeSummaryTemplate,
   saveYoutubeSummaryTemporaryChatEnabled,
   saveYoutubeSummaryTemplate,
+  loadSelectionTooltipEnabled,
+  saveSelectionTooltipEnabled,
 } from '../src/storage.js';
 
 function installChromeStorage(initialData = {}) {
@@ -115,6 +117,34 @@ test('saveYoutubeSummaryTemporaryChatEnabled persists false and true values', as
     await saveYoutubeSummaryTemporaryChatEnabled(true);
     assert.equal(await loadYoutubeSummaryTemporaryChatEnabled(), true);
     assert.equal(chromeStorage.store.youtubeSummaryTemporaryChatEnabled, true);
+  } finally {
+    chromeStorage.restore();
+  }
+});
+
+test('loadSelectionTooltipEnabled defaults to true when unset', async () => {
+  const chromeStorage = installChromeStorage();
+
+  try {
+    const enabled = await loadSelectionTooltipEnabled();
+
+    assert.equal(enabled, true);
+  } finally {
+    chromeStorage.restore();
+  }
+});
+
+test('saveSelectionTooltipEnabled persists false and true values', async () => {
+  const chromeStorage = installChromeStorage();
+
+  try {
+    await saveSelectionTooltipEnabled(false);
+    assert.equal(await loadSelectionTooltipEnabled(), false);
+    assert.equal(chromeStorage.store.showSelectionTooltip, false);
+
+    await saveSelectionTooltipEnabled(true);
+    assert.equal(await loadSelectionTooltipEnabled(), true);
+    assert.equal(chromeStorage.store.showSelectionTooltip, true);
   } finally {
     chromeStorage.restore();
   }
