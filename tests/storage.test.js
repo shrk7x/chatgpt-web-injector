@@ -122,13 +122,13 @@ test('saveYoutubeSummaryTemporaryChatEnabled persists false and true values', as
   }
 });
 
-test('loadSelectionTooltipEnabled defaults to true when unset', async () => {
+test('loadSelectionTooltipEnabled defaults to false when unset', async () => {
   const chromeStorage = installChromeStorage();
 
   try {
     const enabled = await loadSelectionTooltipEnabled();
 
-    assert.equal(enabled, true);
+    assert.equal(enabled, false);
   } finally {
     chromeStorage.restore();
   }

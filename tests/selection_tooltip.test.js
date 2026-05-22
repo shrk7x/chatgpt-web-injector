@@ -9,7 +9,7 @@ test('Selection tooltip behavior based on showSelectionTooltip preference', asyn
     url: 'https://example.com'
   });
 
-  const store = { showSelectionTooltip: true };
+  const store = {}; // Default is empty to test the disabled-by-default behavior
   const storageListeners = [];
   let currentSelectionText = '';
 
@@ -61,7 +61,7 @@ test('Selection tooltip behavior based on showSelectionTooltip preference', asyn
     HTMLInputElement: dom.window.HTMLInputElement,
     globalThis: null,
     setTimeout(callback, delay) {
-      // 立即同步调用，消灭延迟方便测试
+      // Execute synchronously to eliminate latency for tests
       callback();
       return 1;
     },
@@ -71,11 +71,11 @@ test('Selection tooltip behavior based on showSelectionTooltip preference', asyn
 
   context.globalThis = context;
 
-  // 读取并执行内容脚本
+  // Read and execute the content script
   const source = readFileSync(new URL('../src/selection_tooltip.js', import.meta.url), 'utf8');
   vm.runInNewContext(source, context);
 
-  // 辅助函数：触发划词事件
+  // Helper function to trigger selection events
   function triggerSelection(text) {
     currentSelectionText = text;
 
@@ -86,20 +86,28 @@ test('Selection tooltip behavior based on showSelectionTooltip preference', asyn
     dom.window.document.dispatchEvent(selChangeEvent);
   }
 
-  // 1. 默认情况下（开启），选中文本应出现悬浮按钮
+  // 1. By default (unset / no preference saved), selecting text should NOT show the tooltip button
   triggerSelection('selected text');
   let tooltipBtn = dom.window.document.getElementById('chatgpt-web-injector-tooltip');
+  assert.equal(tooltipBtn, null, 'Tooltip button should not appear by default when preference is unset');
+
+  // 2. When preference is enabled (set to true), selecting text should show the tooltip button
+  for (const listener of storageListeners) {
+    listener({ showSelectionTooltip: { newValue: true } }, 'sync');
+  }
+  triggerSelection('another selected text');
+  tooltipBtn = dom.window.document.getElementById('chatgpt-web-injector-tooltip');
   assert.ok(tooltipBtn, 'Tooltip button should appear when preference is enabled');
 
-  // 2. 当在选项页关掉开关，触发 onChanged 时，已出现的按钮应当立刻被移除
+  // 3. When preference is disabled dynamically, any existing tooltip button should be removed instantly
   for (const listener of storageListeners) {
     listener({ showSelectionTooltip: { newValue: false } }, 'sync');
   }
   tooltipBtn = dom.window.document.getElementById('chatgpt-web-injector-tooltip');
   assert.equal(tooltipBtn, null, 'Tooltip button should be removed instantly when preference is disabled');
 
-  // 3. 禁用情况下，选中文本不会出现悬浮按钮
-  triggerSelection('another selected text');
+  // 4. When preference is disabled, selecting new text should NOT show the tooltip button
+  triggerSelection('yet another selected text');
   tooltipBtn = dom.window.document.getElementById('chatgpt-web-injector-tooltip');
   assert.equal(tooltipBtn, null, 'Tooltip button should not appear when preference is disabled');
 });

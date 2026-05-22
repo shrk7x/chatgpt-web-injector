@@ -8,16 +8,16 @@ const DEBUG = false;
 let showTimer = null;
 let lastPointerPosition = null;
 let suppressNextSelection = false;
-let tooltipEnabled = true;
+let tooltipEnabled = false;
 
 if (chrome?.storage?.sync) {
   chrome.storage.sync.get(['showSelectionTooltip'], (data) => {
-    tooltipEnabled = data.showSelectionTooltip !== false;
+    tooltipEnabled = data.showSelectionTooltip === true;
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'sync' && 'showSelectionTooltip' in changes) {
-      tooltipEnabled = changes.showSelectionTooltip.newValue !== false;
+      tooltipEnabled = changes.showSelectionTooltip.newValue === true;
       if (!tooltipEnabled) {
         removeTooltip();
       }

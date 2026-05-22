@@ -133,7 +133,7 @@ export async function saveYoutubeSummaryTemporaryChatEnabled(enabled) {
 
 export async function loadSelectionTooltipEnabled() {
   const data = await chrome.storage.sync.get([SHOW_SELECTION_TOOLTIP_KEY]);
-  return data[SHOW_SELECTION_TOOLTIP_KEY] !== false;
+  return data[SHOW_SELECTION_TOOLTIP_KEY] === true;
 }
 
 export async function saveSelectionTooltipEnabled(enabled) {
