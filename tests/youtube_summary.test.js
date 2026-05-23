@@ -592,3 +592,43 @@ test('loadYoutubeSummary restores chrome when script loading fails', () => {
 
   dom.window.eval = previousEval;
 });
+
+test('YouTube transcript panel button closes an open transcript panel and ignores transcript segments containing close keywords like closed', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-engagement-panel-section-list-renderer visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED">
+          <button aria-label="Close transcript">Close</button>
+          <ytd-transcript-segment-renderer>
+            <button class="segment-text">we have open weight models that are approaching closed models</button>
+          </ytd-transcript-segment-renderer>
+        </ytd-engagement-panel-section-list-renderer>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let closeClicked = false;
+  let segmentClicked = false;
+
+  dom.window.document.querySelector('[aria-label="Close transcript"]').addEventListener('click', () => {
+    closeClicked = true;
+  });
+  dom.window.document.querySelector('.segment-text').addEventListener('click', () => {
+    segmentClicked = true;
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await Promise.resolve();
+
+  assert.equal(closeClicked, true, 'The close button should be clicked');
+  assert.equal(segmentClicked, false, 'The transcript segment containing closed should NOT be clicked');
+});

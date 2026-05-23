@@ -391,20 +391,24 @@ function findTranscriptCloseButton(panel = findTranscriptPanel()) {
   ].join(', ')));
 
   return buttons.find((button) => {
+    // Skip our injected buttons, hidden elements, and buttons inside transcript segments.
+    // Also guard against long text containing 'close' (e.g. 'closed models') matching incorrectly.
     if (
       button.id === YOUTUBE_SUMMARY_BUTTON_ID ||
       button.id === YOUTUBE_TRANSCRIPT_BUTTON_ID ||
+      button.closest(TRANSCRIPT_SEGMENT_SELECTOR) ||
       !isElementVisible(button)
     ) {
       return false;
     }
 
+    const textContent = (button.textContent || '').trim();
     const label = [
       button.id || '',
       button.className || '',
       button.getAttribute('aria-label') || '',
       button.getAttribute('title') || '',
-      button.textContent || '',
+      textContent.length <= 15 ? textContent : '',
     ].join(' ');
     return closePattern.test(label);
   }) || null;
