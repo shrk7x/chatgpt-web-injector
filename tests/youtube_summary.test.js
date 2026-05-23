@@ -235,6 +235,47 @@ test('YouTube transcript panel button closes an open transcript panel', async ()
   assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
 });
 
+test('YouTube transcript panel button closes panel when ytd-transcript-renderer wraps segments', async () => {
+  // Mirrors real YouTube DOM where ytd-transcript-renderer is an intermediate
+  // layer between the engagement panel and transcript segments. The close button
+  // sits outside this inner renderer, so the search must expand to the outer panel.
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+        <ytd-engagement-panel-section-list-renderer>
+          <button aria-label="Close">Close</button>
+          <ytd-transcript-renderer>
+            <ytd-transcript-segment-renderer>
+              <span class="segment-timestamp">0:05</span>
+              <span class="segment-text">Hello world</span>
+            </ytd-transcript-segment-renderer>
+          </ytd-transcript-renderer>
+        </ytd-engagement-panel-section-list-renderer>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  let closeClicked = false;
+  dom.window.document.querySelector('[aria-label="Close"]').addEventListener('click', () => {
+    closeClicked = true;
+  });
+
+  loadYoutubeSummary(dom);
+
+  const button = dom.window.document.getElementById('chatgpt-web-injector-youtube-transcript');
+  button.click();
+  await Promise.resolve();
+
+  assert.equal(closeClicked, true, 'Close button outside ytd-transcript-renderer should be found and clicked');
+  assert.equal(dom.window.document.getElementById('chatgpt-web-injector-youtube-status'), null);
+});
+
 test('YouTube transcript panel button closes an open transcript panel with an unlabeled dismiss button', async () => {
   const dom = new JSDOM(`
     <html>

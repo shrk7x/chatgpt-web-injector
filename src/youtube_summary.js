@@ -467,7 +467,11 @@ async function fetchTranscriptFromDom() {
 async function toggleTranscriptPanel() {
   const panel = findTranscriptPanel();
   if (panel) {
-    const closeButton = findTranscriptCloseButton(panel);
+    // findTranscriptPanel() may return an inner element (e.g. ytd-transcript-renderer)
+    // whose scope does not include the close button. Expand to the outermost engagement
+    // panel so the close button is always within the search range.
+    const outerPanel = panel.closest('ytd-engagement-panel-section-list-renderer') || panel;
+    const closeButton = findTranscriptCloseButton(outerPanel);
     if (!closeButton) {
       showStatus('Transcript unavailable');
       return;
