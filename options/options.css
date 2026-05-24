@@ -30,8 +30,20 @@ h2 {
   color: #4b5563;
 }
 
+.section-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 4px 0 0;
+  font-weight: 400;
+}
+
 .settings-section {
-  margin-bottom: 28px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
 /* ---- Template list ---- */
@@ -110,16 +122,103 @@ label:first-child {
   margin-top: 0;
 }
 
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* ---- Modern Settings Card & Group Layout ---- */
+.setting-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
   margin-top: 14px;
+  overflow: hidden;
 }
 
-.checkbox-row input {
-  width: 16px;
-  height: 16px;
+.setting-card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  gap: 20px;
+}
+
+.setting-item-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.setting-icon {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.setting-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.setting-description {
+  font-size: 0.825rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* ---- Modern Toggle Switch ---- */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .slider {
+  background-color: #0070f3;
+}
+
+.toggle-switch input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+/* 无障碍键盘 Tab 聚焦焦点发光环 */
+.toggle-switch input:focus-visible + .slider {
+  box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.4);
 }
 
 input[type='text'] {
