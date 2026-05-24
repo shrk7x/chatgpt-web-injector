@@ -163,12 +163,12 @@ h1 {
 }
 
 /* 激活状态滑槽背景色 */
-input:checked + .slider {
+.switch input:checked + .slider {
   background-color: #0070f3;
 }
 
 /* 激活状态按钮水平移动 */
-input:checked + .slider:before {
+.switch input:checked + .slider:before {
   transform: translateX(14px);
 }
 
