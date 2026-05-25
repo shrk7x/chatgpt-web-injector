@@ -38,6 +38,12 @@ function isWatchPage() {
 function removeButton() {
   document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)?.remove();
   document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)?.remove();
+  document.getElementById(YOUTUBE_DOWNLOAD_BUTTON_ID)?.remove();
+  if (downloadMenuClickOutsideHandler) {
+    document.removeEventListener('click', downloadMenuClickOutsideHandler, true);
+    downloadMenuClickOutsideHandler = null;
+  }
+  document.getElementById(YOUTUBE_DOWNLOAD_MENU_ID)?.remove();
   document.getElementById(YOUTUBE_SUMMARY_STATUS_ID)?.remove();
 }
 
@@ -701,8 +707,14 @@ function createTranscriptButton() {
 
 /* ---- MVP Subtitle Downloader Functions ---- */
 
-function triggerFileDownload(content, filename) {
-  const blob = new Blob([content], { type: 'text/srt;charset=utf-8' });
+const YOUTUBE_DOWNLOAD_BUTTON_ID = 'chatgpt-web-injector-youtube-download';
+const YOUTUBE_DOWNLOAD_MENU_ID = 'chatgpt-web-injector-youtube-download-menu';
+
+// 模块级变量以在各个出口安全销毁全局 ClickOutside 监听 (防止 Buildup 内存泄漏)
+let downloadMenuClickOutsideHandler = null;
+
+function triggerFileDownload(content, filename, mimeType = 'text/plain;charset=utf-8') {
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -713,100 +725,196 @@ function triggerFileDownload(content, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function triggerSubtitlesDownload(button) {
-  const textNode = button.querySelector('.download-btn-text');
-  
-  if (button.disabled) {
-    return;
-  }
-
+async function downloadCurrentSubtitleFlow(format, button) {
+  const originalHtml = button.innerHTML;
   button.disabled = true;
   button.classList.add('is-loading');
-  if (textNode) {
-    textNode.textContent = 'Loading...';
-  }
+  button.textContent = 'Loading...';
 
   try {
-    const transcriptText = await getTranscript();
+    // 重用拥有 100% 成功率 (API ➡️ InnerTube ➡️ DOM 提取) 的金牌 fallback 字幕链！
+    const transcript = await getTranscript();
     const transcriptHelpers = window.ChatgptWebInjectorYoutubeTranscript;
-    if (!transcriptHelpers?.convertToSrt) {
+    if (!transcriptHelpers) {
       throw new Error('transcript_helpers_unavailable');
     }
-    const srtContent = transcriptHelpers.convertToSrt(transcriptText);
-    
-    if (!srtContent) {
-      throw new Error('empty_srt_output');
-    }
 
+    let content = '';
     const rawTitle = document.querySelector('h1.ytd-watch-metadata')?.textContent?.trim() || document.title;
     const sanitizedTitle = rawTitle.replace(/[\\/:*?"<>|]/g, '_').trim() || 'youtube_subtitle';
-    const filename = `${sanitizedTitle}.srt`;
+    const filename = `${sanitizedTitle}.${format}`;
 
-    triggerFileDownload(srtContent, filename);
-    
-    if (textNode) {
-      textNode.textContent = 'Done!';
-    }
-    setTimeout(() => {
-      if (textNode) {
-        textNode.textContent = 'Download';
+    if (format === 'txt') {
+      if (!transcriptHelpers.convertToTxt) {
+        throw new Error('convertToTxt_unavailable');
       }
+      content = transcriptHelpers.convertToTxt(transcript);
+    } else {
+      if (!transcriptHelpers.convertToSrt) {
+        throw new Error('convertToSrt_unavailable');
+      }
+      content = transcriptHelpers.convertToSrt(transcript);
+    }
+
+    if (!content) {
+      throw new Error('empty_converted_content');
+    }
+
+    triggerFileDownload(content, filename);
+
+    button.textContent = 'Done!';
+    setTimeout(() => {
+      // 成功下载自动关闭气泡菜单并安全解绑全局 click 监听
+      if (downloadMenuClickOutsideHandler) {
+        document.removeEventListener('click', downloadMenuClickOutsideHandler, true);
+        downloadMenuClickOutsideHandler = null;
+      }
+      document.getElementById(YOUTUBE_DOWNLOAD_MENU_ID)?.remove();
+      
+      button.innerHTML = originalHtml;
       button.disabled = false;
       button.classList.remove('is-loading');
-    }, 1500);
+    }, 1000);
 
   } catch (error) {
-    console.warn('[ChatGPT Web Injector] Failed to download YouTube subtitles:', error);
-    if (textNode) {
-      textNode.textContent = 'Error';
-    }
+    console.warn(`[ChatGPT Web Injector] Failed to download subtitles (${format}):`, error);
+    button.textContent = 'Error';
     setTimeout(() => {
-      if (textNode) {
-        textNode.textContent = 'Download';
-      }
+      button.innerHTML = originalHtml;
       button.disabled = false;
       button.classList.remove('is-loading');
     }, 1500);
   }
 }
 
-function mountDownloadButtonToPanel() {
-  const panel = findTranscriptPanel();
-  if (!panel) {
+async function toggleDownloadMenu(button) {
+  const menu = document.getElementById(YOUTUBE_DOWNLOAD_MENU_ID);
+  if (menu) {
+    // 主动二次点击 📥 按钮关闭菜单时，安全解绑 click 监听并移除节点
+    if (downloadMenuClickOutsideHandler) {
+      document.removeEventListener('click', downloadMenuClickOutsideHandler, true);
+      downloadMenuClickOutsideHandler = null;
+    }
+    menu.remove();
     return;
   }
 
-  const outerPanel = panel.closest('ytd-engagement-panel-section-list-renderer') || panel;
-  const closeButton = findTranscriptCloseButton(outerPanel);
-  if (!closeButton) {
+  const container = document.querySelector('.ytp-chrome-controls');
+  if (!container) {
+    showStatus('Controls unavailable');
     return;
   }
 
-  const YOUTUBE_DOWNLOAD_BUTTON_ID = 'chatgpt-web-injector-youtube-download';
-  if (outerPanel.querySelector(`#${YOUTUBE_DOWNLOAD_BUTTON_ID}`)) {
-    return;
-  }
+  const menuDiv = document.createElement('div');
+  menuDiv.id = YOUTUBE_DOWNLOAD_MENU_ID;
 
-  const downloadButton = document.createElement('button');
-  downloadButton.id = YOUTUBE_DOWNLOAD_BUTTON_ID;
-  downloadButton.type = 'button';
-  downloadButton.title = 'Download subtitle as SRT';
-  downloadButton.className = 'youtube-download-pill-btn';
-  downloadButton.innerHTML = `
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="download-icon" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-    <span class="download-btn-text">Download</span>
+  menuDiv.innerHTML = `
+    <div class="youtube-download-menu-header">Download Subtitles</div>
+    <div class="youtube-download-menu-list" style="overflow: hidden; padding-bottom: 2px;">
+      <button type="button" class="youtube-download-large-btn srt-btn" data-type="srt" style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 38px;
+        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      ">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        SRT 字幕格式下载
+      </button>
+      <button type="button" class="youtube-download-large-btn txt-btn" data-type="txt" style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 38px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      ">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        TXT 纯文本格式下载
+      </button>
+    </div>
   `;
 
-  downloadButton.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    triggerSubtitlesDownload(downloadButton).catch((err) => {
-      console.warn('[ChatGPT Web Injector] Subtitle download action failed:', err);
+  // 注入大按钮悬浮 Hover 样式
+  menuDiv.querySelectorAll('.youtube-download-large-btn').forEach((btn) => {
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = 'rgba(46, 204, 113, 0.2)';
+      btn.style.borderColor = '#2ecc71';
+      btn.style.color = '#2ecc71';
+      btn.style.boxShadow = '0 0 8px rgba(46, 204, 113, 0.4)';
     });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = 'rgba(255, 255, 255, 0.08)';
+      btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+      btn.style.color = '#fff';
+      btn.style.boxShadow = 'none';
+    });
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const format = btn.getAttribute('data-type');
+      downloadCurrentSubtitleFlow(format, btn).catch((err) => {
+        console.warn('[ChatGPT Web Injector] Subtitle download failed:', err);
+      });
+    }, true);
   });
 
-  closeButton.insertAdjacentElement('beforebegin', downloadButton);
-  log('Subtitle download button successfully mounted to transcript panel.');
+  container.appendChild(menuDiv);
+
+  // 动态定位计算
+  const rect = button.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const leftOffset = rect.left - containerRect.left - (menuDiv.offsetWidth / 2) + (rect.width / 2);
+  const safeLeft = Math.max(10, Math.min(leftOffset, containerRect.width - menuDiv.offsetWidth - 10));
+  menuDiv.style.left = `${safeLeft}px`;
+
+  // 建立新的 click outside 观察
+  if (downloadMenuClickOutsideHandler) {
+    document.removeEventListener('click', downloadMenuClickOutsideHandler, true);
+  }
+
+  downloadMenuClickOutsideHandler = (event) => {
+    if (!menuDiv.contains(event.target) && !button.contains(event.target)) {
+      menuDiv.remove();
+      document.removeEventListener('click', downloadMenuClickOutsideHandler, true);
+      downloadMenuClickOutsideHandler = null;
+    }
+  };
+  document.addEventListener('click', downloadMenuClickOutsideHandler, true);
+}
+
+function createDownloadButton() {
+  const button = document.createElement('button');
+  button.id = YOUTUBE_DOWNLOAD_BUTTON_ID;
+  button.type = 'button';
+  button.title = 'Download subtitles';
+  button.setAttribute('aria-label', 'Download subtitles');
+  button.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleDownloadMenu(button).catch((error) => {
+      console.warn('[ChatGPT Web Injector] YouTube download menu failed:', error);
+      showStatus('Failed to load menu');
+    });
+  }, true);
+  return button;
 }
 
 /* ---- Navigation and Observing ---- */
@@ -821,10 +929,9 @@ function mountButton() {
 
   if (
     document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID) &&
-    document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)
+    document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID) &&
+    document.getElementById(YOUTUBE_DOWNLOAD_BUTTON_ID)
   ) {
-    // 每次挂载视频控制按钮时，顺便激活一次面板检测挂载
-    mountDownloadButtonToPanel();
     return;
   }
 
@@ -836,13 +943,21 @@ function mountButton() {
 
   document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID)?.remove();
   document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)?.remove();
+  document.getElementById(YOUTUBE_DOWNLOAD_BUTTON_ID)?.remove();
+  if (downloadMenuClickOutsideHandler) {
+    document.removeEventListener('click', downloadMenuClickOutsideHandler, true);
+    downloadMenuClickOutsideHandler = null;
+  }
+  document.getElementById(YOUTUBE_DOWNLOAD_MENU_ID)?.remove();
 
   const summaryButton = createButton();
   subtitlesButton.insertAdjacentElement('afterend', summaryButton);
-  summaryButton.insertAdjacentElement('afterend', createTranscriptButton());
   
-  // 视频加载时尝试挂载下载按钮
-  mountDownloadButtonToPanel();
+  const transcriptButton = createTranscriptButton();
+  summaryButton.insertAdjacentElement('afterend', transcriptButton);
+
+  const downloadButton = createDownloadButton();
+  transcriptButton.insertAdjacentElement('afterend', downloadButton);
 }
 
 function handleNavigation() {
@@ -880,16 +995,6 @@ function observePlayerControls() {
   observer.observe(controls, { childList: true, subtree: true });
 }
 
-// 动态监听右侧字幕面板的开启，确保一打开面板就安全注入下载按钮
-const panelObserver = new MutationObserver(() => {
-  mountDownloadButtonToPanel();
-});
-
-function startObservingTranscriptPanel() {
-  panelObserver.observe(document.body, { childList: true, subtree: true });
-}
-
-startObservingTranscriptPanel();
 observePlayerControls();
 handleNavigation();
 }());

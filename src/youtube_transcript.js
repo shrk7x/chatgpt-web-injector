@@ -239,15 +239,18 @@
   }
 
   function formatSrtTimestamp(totalSeconds) {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = Math.floor(totalSeconds % 60);
+    const cleaned = Number(totalSeconds);
+    const safeSeconds = Number.isFinite(cleaned) ? Math.max(0, cleaned) : 0;
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = Math.floor(safeSeconds % 60);
+    const milliseconds = Math.floor((safeSeconds % 1) * 1000);
     
     return [
       String(hours).padStart(2, '0'),
       String(minutes).padStart(2, '0'),
       String(seconds).padStart(2, '0')
-    ].join(':') + ',000';
+    ].join(':') + `,${String(milliseconds).padStart(3, '0')}`;
   }
 
   function convertToSrt(transcriptText) {
@@ -283,6 +286,9 @@
       return '';
     }
 
+    // 按开始时间排序，以防输入乱序导致截止时间计算负值 (PR comments 反馈修复)
+    parsedSegments.sort((a, b) => a.start - b.start);
+
     const srtLines = [];
     for (let i = 0; i < parsedSegments.length; i += 1) {
       const current = parsedSegments[i];
@@ -303,6 +309,25 @@
     return srtLines.join('\n');
   }
 
+  function convertToTxt(transcriptText) {
+    if (!transcriptText || typeof transcriptText !== 'string') {
+      return '';
+    }
+
+    const lines = transcriptText.split('\n').filter(Boolean);
+    const parsedTexts = [];
+
+    for (const line of lines) {
+      const textStart = line.indexOf(']') + 1;
+      const text = textStart > 0 ? line.substring(textStart).trim() : line.trim();
+      if (text) {
+        parsedTexts.push(text);
+      }
+    }
+
+    return parsedTexts.join(' ').replace(/\s+/g, ' ');
+  }
+
   globalScope.ChatgptWebInjectorYoutubeTranscript = {
     buildCaptionUrl,
     chooseCaptionTrack,
@@ -312,5 +337,6 @@
     parseTranscriptXml,
     convertToSrt,
     formatSrtTimestamp,
+    convertToTxt,
   };
 }(globalThis));
