@@ -1,4 +1,9 @@
-import { loadTemplates, saveTemplates } from '../src/storage.js';
+import {
+  loadTemplates,
+  saveTemplates,
+  loadYoutubeSummaryTemporaryChatEnabled,
+  saveYoutubeSummaryTemporaryChatEnabled
+} from '../src/storage.js';
 
 const listEl = document.getElementById('template-list');
 const manageBtn = document.getElementById('manage-btn');
@@ -88,9 +93,31 @@ youtubeTemplateBtn.addEventListener('click', () => {
   window.close();
 });
 
+const tempChatToggle = document.getElementById('youtube-temp-chat-toggle');
+
 async function init() {
   state = await loadTemplates();
   render();
+
+  try {
+    const tempChatEnabled = await loadYoutubeSummaryTemporaryChatEnabled();
+    if (tempChatToggle) {
+      tempChatToggle.checked = tempChatEnabled;
+    }
+  } catch (err) {
+    console.error('[ChatGPT Web Injector] Failed to load youtube summary temporary chat state:', err);
+  }
+
+  if (tempChatToggle) {
+    tempChatToggle.addEventListener('change', async (e) => {
+      try {
+        await saveYoutubeSummaryTemporaryChatEnabled(e.target.checked);
+      } catch (err) {
+        console.error('[ChatGPT Web Injector] Failed to save youtube summary temporary chat state:', err);
+        e.target.checked = !e.target.checked;
+      }
+    });
+  }
 }
 
 init().catch((err) => {

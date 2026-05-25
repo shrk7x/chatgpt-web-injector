@@ -117,9 +117,24 @@ async function sendWithTemplate(templateId, selectionText, tab) {
   await sendPromptToChatgpt(prompt);
 }
 
+async function safeTabsCreate(createProperties, maxAttempts = 3, delayMs = 150) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await chrome.tabs.create(createProperties);
+    } catch (error) {
+      const isDraggingError = /tabs cannot be edited right now/i.test(error?.message || '');
+      if (!isDraggingError || attempt === maxAttempts) {
+        throw error;
+      }
+      console.warn(`[ChatGPT Web Injector] Tab creation delayed due to tab dragging state, retrying in ${delayMs}ms (attempt ${attempt}/${maxAttempts})...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function sendPromptToChatgpt(prompt, options = {}) {
   const targetUrl = getChatgptTargetUrl(options.preferTemporaryChat === true);
-  const targetTab = await chrome.tabs.create({ url: targetUrl, active: true });
+  const targetTab = await safeTabsCreate({ url: targetUrl, active: true });
   await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
 
   const result = await executeChatgptSendFlow(targetTab.id, prompt, {
