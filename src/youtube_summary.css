@@ -73,3 +73,58 @@
     transform: rotate(360deg);
   }
 }
+
+/* ---- YouTube 侧边栏字幕下载药丸按钮样式 ---- */
+.youtube-download-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  margin-right: 8px; /* 与关闭 X 按钮留出黄金比例间距 */
+  border: none;
+  border-radius: 16px;
+  background: var(--yt-spec-badge-chip-background, rgba(0, 0, 0, 0.05));
+  color: var(--yt-spec-text-primary, #0f0f0f);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 12px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  outline: none;
+  vertical-align: middle;
+}
+
+/* 完美适配暗色主题模式 */
+html[dark] .youtube-download-pill-btn,
+ytd-app[dark] .youtube-download-pill-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.youtube-download-pill-btn:hover {
+  background: var(--yt-spec-button-chip-background-hover, rgba(0, 0, 0, 0.1));
+  transform: scale(1.03);
+}
+
+html[dark] .youtube-download-pill-btn:hover,
+ytd-app[dark] .youtube-download-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.youtube-download-pill-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  transform: none;
+}
+
+/* 键盘导航无障碍焦点环样式 (a11y) */
+.youtube-download-pill-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--yt-spec-brand-link-text, #0070f3);
+}
+
+/* Loading 载入时下载图标平滑自旋转 */
+.youtube-download-pill-btn.is-loading .download-icon {
+  animation: chatgpt-web-injector-spin 0.75s linear infinite;
+}
+

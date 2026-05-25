@@ -699,6 +699,118 @@ function createTranscriptButton() {
   return button;
 }
 
+/* ---- MVP Subtitle Downloader Functions ---- */
+
+function triggerFileDownload(content, filename) {
+  const blob = new Blob([content], { type: 'text/srt;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function triggerSubtitlesDownload(button) {
+  const textNode = button.querySelector('.download-btn-text');
+  
+  if (button.disabled) {
+    return;
+  }
+
+  button.disabled = true;
+  button.classList.add('is-loading');
+  if (textNode) {
+    textNode.textContent = 'Loading...';
+  }
+
+  try {
+    const transcriptText = await getTranscript();
+    const transcriptHelpers = window.ChatgptWebInjectorYoutubeTranscript;
+    if (!transcriptHelpers?.convertToSrt) {
+      throw new Error('transcript_helpers_unavailable');
+    }
+    const srtContent = transcriptHelpers.convertToSrt(transcriptText);
+    
+    if (!srtContent) {
+      throw new Error('empty_srt_output');
+    }
+
+    const rawTitle = document.querySelector('h1.ytd-watch-metadata')?.textContent?.trim() || document.title;
+    const sanitizedTitle = rawTitle.replace(/[\\/:*?"<>|]/g, '_').trim() || 'youtube_subtitle';
+    const filename = `${sanitizedTitle}.srt`;
+
+    triggerFileDownload(srtContent, filename);
+    
+    if (textNode) {
+      textNode.textContent = 'Done!';
+    }
+    setTimeout(() => {
+      if (textNode) {
+        textNode.textContent = 'Download';
+      }
+      button.disabled = false;
+      button.classList.remove('is-loading');
+    }, 1500);
+
+  } catch (error) {
+    console.warn('[ChatGPT Web Injector] Failed to download YouTube subtitles:', error);
+    if (textNode) {
+      textNode.textContent = 'Error';
+    }
+    setTimeout(() => {
+      if (textNode) {
+        textNode.textContent = 'Download';
+      }
+      button.disabled = false;
+      button.classList.remove('is-loading');
+    }, 1500);
+  }
+}
+
+function mountDownloadButtonToPanel() {
+  const panel = findTranscriptPanel();
+  if (!panel) {
+    return;
+  }
+
+  const outerPanel = panel.closest('ytd-engagement-panel-section-list-renderer') || panel;
+  const closeButton = findTranscriptCloseButton(outerPanel);
+  if (!closeButton) {
+    return;
+  }
+
+  const YOUTUBE_DOWNLOAD_BUTTON_ID = 'chatgpt-web-injector-youtube-download';
+  if (outerPanel.querySelector(`#${YOUTUBE_DOWNLOAD_BUTTON_ID}`)) {
+    return;
+  }
+
+  const downloadButton = document.createElement('button');
+  downloadButton.id = YOUTUBE_DOWNLOAD_BUTTON_ID;
+  downloadButton.type = 'button';
+  downloadButton.title = 'Download subtitle as SRT';
+  downloadButton.className = 'youtube-download-pill-btn';
+  downloadButton.innerHTML = `
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="download-icon" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    <span class="download-btn-text">Download</span>
+  `;
+
+  downloadButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    triggerSubtitlesDownload(downloadButton).catch((err) => {
+      console.warn('[ChatGPT Web Injector] Subtitle download action failed:', err);
+    });
+  });
+
+  closeButton.insertAdjacentElement('beforebegin', downloadButton);
+  log('Subtitle download button successfully mounted to transcript panel.');
+}
+
+/* ---- Navigation and Observing ---- */
+
 function mountButton() {
   clearTimeout(mountTimer);
 
@@ -711,6 +823,8 @@ function mountButton() {
     document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID) &&
     document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID)
   ) {
+    // 每次挂载视频控制按钮时，顺便激活一次面板检测挂载
+    mountDownloadButtonToPanel();
     return;
   }
 
@@ -726,6 +840,9 @@ function mountButton() {
   const summaryButton = createButton();
   subtitlesButton.insertAdjacentElement('afterend', summaryButton);
   summaryButton.insertAdjacentElement('afterend', createTranscriptButton());
+  
+  // 视频加载时尝试挂载下载按钮
+  mountDownloadButtonToPanel();
 }
 
 function handleNavigation() {
@@ -763,6 +880,17 @@ function observePlayerControls() {
   observer.observe(controls, { childList: true, subtree: true });
 }
 
+// 动态监听右侧字幕面板的开启，确保一打开面板就安全注入下载按钮
+const panelObserver = new MutationObserver(() => {
+  mountDownloadButtonToPanel();
+});
+
+function startObservingTranscriptPanel() {
+  panelObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+startObservingTranscriptPanel();
 observePlayerControls();
 handleNavigation();
 }());
+

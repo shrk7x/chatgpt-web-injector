@@ -171,3 +171,40 @@ test('parseModernTranscriptSegmentText preserves hour timestamps', () => {
     JSON.stringify({ timestamp: '1:23:45', text: 'Long-form point' })
   );
 });
+
+test('formatSrtTimestamp formats seconds to SRT time format', () => {
+  const { formatSrtTimestamp } = loadHelpers();
+  assert.equal(formatSrtTimestamp(0), '00:00:00,000');
+  assert.equal(formatSrtTimestamp(12), '00:00:12,000');
+  assert.equal(formatSrtTimestamp(65), '00:01:05,000');
+  assert.equal(formatSrtTimestamp(3930), '01:05:30,000');
+});
+
+test('convertToSrt converts transcript text with timestamps to SRT format', () => {
+  const { convertToSrt } = loadHelpers();
+  const transcript = '[00:12] Hello world\n[01:05] Next line\n[01:05:30] Third line';
+  const expected = [
+    '1',
+    '00:00:12,000 --> 00:01:05,000',
+    'Hello world',
+    '',
+    '2',
+    '00:01:05,000 --> 01:05:30,000',
+    'Next line',
+    '',
+    '3',
+    '01:05:30,000 --> 01:05:33,000',
+    'Third line',
+    ''
+  ].join('\n');
+
+  assert.equal(convertToSrt(transcript), expected);
+});
+
+test('convertToSrt handles empty or invalid transcript gracefully', () => {
+  const { convertToSrt } = loadHelpers();
+  assert.equal(convertToSrt(''), '');
+  assert.equal(convertToSrt(null), '');
+  assert.equal(convertToSrt('invalid text'), '');
+});
+

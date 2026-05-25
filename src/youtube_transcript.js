@@ -238,6 +238,71 @@
     return url.toString();
   }
 
+  function formatSrtTimestamp(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    
+    return [
+      String(hours).padStart(2, '0'),
+      String(minutes).padStart(2, '0'),
+      String(seconds).padStart(2, '0')
+    ].join(':') + ',000';
+  }
+
+  function convertToSrt(transcriptText) {
+    if (!transcriptText || typeof transcriptText !== 'string') {
+      return '';
+    }
+
+    const lines = transcriptText.split('\n').filter(Boolean);
+    const parsedSegments = [];
+
+    for (const line of lines) {
+      const match = line.match(/^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*(.*)$/);
+      if (!match) {
+        continue;
+      }
+      
+      const timeStr = line.substring(1, line.indexOf(']'));
+      const parts = timeStr.split(':').map(Number);
+      let totalSeconds = 0;
+      if (parts.length === 3) {
+        totalSeconds = (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+      } else if (parts.length === 2) {
+        totalSeconds = (parts[0] * 60) + parts[1];
+      }
+      
+      const text = line.substring(line.indexOf(']') + 1).trim();
+      if (text) {
+        parsedSegments.push({ start: totalSeconds, text });
+      }
+    }
+
+    if (parsedSegments.length === 0) {
+      return '';
+    }
+
+    const srtLines = [];
+    for (let i = 0; i < parsedSegments.length; i += 1) {
+      const current = parsedSegments[i];
+      const next = parsedSegments[i + 1];
+      
+      const startSec = current.start;
+      const endSec = next ? next.start : startSec + 3;
+
+      const startTimestamp = formatSrtTimestamp(startSec);
+      const endTimestamp = formatSrtTimestamp(endSec);
+
+      srtLines.push(String(i + 1));
+      srtLines.push(`${startTimestamp} --> ${endTimestamp}`);
+      srtLines.push(current.text);
+      srtLines.push('');
+    }
+
+    return srtLines.join('\n');
+  }
+
   globalScope.ChatgptWebInjectorYoutubeTranscript = {
     buildCaptionUrl,
     chooseCaptionTrack,
@@ -245,5 +310,7 @@
     parseModernTranscriptSegmentText,
     parseTranscript,
     parseTranscriptXml,
+    convertToSrt,
+    formatSrtTimestamp,
   };
 }(globalThis));
