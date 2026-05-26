@@ -17,30 +17,56 @@
   vertical-align: top;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+#chatgpt-web-injector-youtube-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  width: 36px;
+  padding: 0;
+  margin: 0 4px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  vertical-align: top;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 #chatgpt-web-injector-youtube-summary:hover,
-#chatgpt-web-injector-youtube-transcript:hover {
+#chatgpt-web-injector-youtube-transcript:hover,
+#chatgpt-web-injector-youtube-download:hover {
   background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.02);
 }
 
-#chatgpt-web-injector-youtube-summary:disabled {
+#chatgpt-web-injector-youtube-summary:disabled,
+#chatgpt-web-injector-youtube-download:disabled {
   cursor: wait;
   opacity: 0.75;
 }
 
-#chatgpt-web-injector-youtube-summary.is-loading {
+#chatgpt-web-injector-youtube-summary.is-loading,
+#chatgpt-web-injector-youtube-download.is-loading {
   color: transparent;
   position: relative;
 }
 
 #chatgpt-web-injector-youtube-summary.is-loading svg,
-#chatgpt-web-injector-youtube-summary.is-loading span {
+#chatgpt-web-injector-youtube-summary.is-loading span,
+#chatgpt-web-injector-youtube-download.is-loading svg,
+#chatgpt-web-injector-youtube-download.is-loading span {
   opacity: 0;
 }
 
-#chatgpt-web-injector-youtube-summary.is-loading::after {
+#chatgpt-web-injector-youtube-summary.is-loading::after,
+#chatgpt-web-injector-youtube-download.is-loading::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -68,8 +94,158 @@
   vertical-align: top;
 }
 
+/* 下拉气泡菜单 (Popover Menu) */
+#chatgpt-web-injector-youtube-download-menu {
+  position: absolute;
+  bottom: 48px;
+  background: rgba(28, 28, 28, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 2147483647;
+  width: 250px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  font-family: "YouTube Noto", Roboto, Arial, sans-serif;
+}
+
+.youtube-download-menu-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  user-select: none;
+}
+
+.youtube-download-menu-list {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 自定义极简滚动条 */
+.youtube-download-menu-list::-webkit-scrollbar {
+  width: 4px;
+}
+.youtube-download-menu-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.youtube-download-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.youtube-download-menu-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.youtube-download-menu-lang {
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  text-align: left;
+}
+
+.youtube-download-menu-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.youtube-download-menu-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.youtube-download-menu-btn:hover {
+  background: rgba(46, 204, 113, 0.2);
+  border-color: #2ecc71;
+  color: #2ecc71;
+  box-shadow: 0 0 6px rgba(46, 204, 113, 0.4);
+}
+
+.youtube-download-menu-btn.is-loading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 @keyframes chatgpt-web-injector-spin {
   to {
     transform: rotate(360deg);
   }
 }
+
+/* ---- YouTube 侧边栏字幕下载药丸按钮样式 ---- */
+.youtube-download-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  margin-right: 8px; /* 与关闭 X 按钮留出黄金比例间距 */
+  border: none;
+  border-radius: 16px;
+  background: var(--yt-spec-badge-chip-background, rgba(0, 0, 0, 0.05));
+  color: var(--yt-spec-text-primary, #0f0f0f);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 12px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  outline: none;
+  vertical-align: middle;
+}
+
+/* 完美适配暗色主题模式 */
+html[dark] .youtube-download-pill-btn,
+ytd-app[dark] .youtube-download-pill-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.youtube-download-pill-btn:hover {
+  background: var(--yt-spec-button-chip-background-hover, rgba(0, 0, 0, 0.1));
+  transform: scale(1.03);
+}
+
+html[dark] .youtube-download-pill-btn:hover,
+ytd-app[dark] .youtube-download-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.youtube-download-pill-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  transform: none;
+}
+
+/* 键盘导航无障碍焦点环样式 (a11y) */
+.youtube-download-pill-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--yt-spec-brand-link-text, #0070f3);
+}
+
+/* Loading 载入时下载图标平滑自旋转 */
+.youtube-download-pill-btn.is-loading .download-icon {
+  animation: chatgpt-web-injector-spin 0.75s linear infinite;
+}
+

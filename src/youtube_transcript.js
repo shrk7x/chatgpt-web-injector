@@ -238,6 +238,96 @@
     return url.toString();
   }
 
+  function formatSrtTimestamp(totalSeconds) {
+    const cleaned = Number(totalSeconds);
+    const safeSeconds = Number.isFinite(cleaned) ? Math.max(0, cleaned) : 0;
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = Math.floor(safeSeconds % 60);
+    const milliseconds = Math.floor((safeSeconds % 1) * 1000);
+    
+    return [
+      String(hours).padStart(2, '0'),
+      String(minutes).padStart(2, '0'),
+      String(seconds).padStart(2, '0')
+    ].join(':') + `,${String(milliseconds).padStart(3, '0')}`;
+  }
+
+  function convertToSrt(transcriptText) {
+    if (!transcriptText || typeof transcriptText !== 'string') {
+      return '';
+    }
+
+    const lines = transcriptText.split('\n').filter(Boolean);
+    const parsedSegments = [];
+
+    for (const line of lines) {
+      const match = line.match(/^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*(.*)$/);
+      if (!match) {
+        continue;
+      }
+      
+      const timeStr = line.substring(1, line.indexOf(']'));
+      const parts = timeStr.split(':').map(Number);
+      let totalSeconds = 0;
+      if (parts.length === 3) {
+        totalSeconds = (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+      } else if (parts.length === 2) {
+        totalSeconds = (parts[0] * 60) + parts[1];
+      }
+      
+      const text = line.substring(line.indexOf(']') + 1).trim();
+      if (text) {
+        parsedSegments.push({ start: totalSeconds, text });
+      }
+    }
+
+    if (parsedSegments.length === 0) {
+      return '';
+    }
+
+    // 按开始时间排序，以防输入乱序导致截止时间计算负值 (PR comments 反馈修复)
+    parsedSegments.sort((a, b) => a.start - b.start);
+
+    const srtLines = [];
+    for (let i = 0; i < parsedSegments.length; i += 1) {
+      const current = parsedSegments[i];
+      const next = parsedSegments[i + 1];
+      
+      const startSec = current.start;
+      const endSec = next ? next.start : startSec + 3;
+
+      const startTimestamp = formatSrtTimestamp(startSec);
+      const endTimestamp = formatSrtTimestamp(endSec);
+
+      srtLines.push(String(i + 1));
+      srtLines.push(`${startTimestamp} --> ${endTimestamp}`);
+      srtLines.push(current.text);
+      srtLines.push('');
+    }
+
+    return srtLines.join('\n');
+  }
+
+  function convertToTxt(transcriptText) {
+    if (!transcriptText || typeof transcriptText !== 'string') {
+      return '';
+    }
+
+    const lines = transcriptText.split('\n').filter(Boolean);
+    const parsedTexts = [];
+
+    for (const line of lines) {
+      const textStart = line.indexOf(']') + 1;
+      const text = textStart > 0 ? line.substring(textStart).trim() : line.trim();
+      if (text) {
+        parsedTexts.push(text);
+      }
+    }
+
+    return parsedTexts.join(' ').replace(/\s+/g, ' ');
+  }
+
   globalScope.ChatgptWebInjectorYoutubeTranscript = {
     buildCaptionUrl,
     chooseCaptionTrack,
@@ -245,5 +335,8 @@
     parseModernTranscriptSegmentText,
     parseTranscript,
     parseTranscriptXml,
+    convertToSrt,
+    formatSrtTimestamp,
+    convertToTxt,
   };
 }(globalThis));
