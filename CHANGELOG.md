@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.16](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.15...v0.0.16) (2026-05-29)
+
+### Features
+
+* **扩展弹窗 UI 深度重塑 (Redesigned Extension Popup UI)**：完全重构了 Chrome 扩展弹窗样式，采用 12px 极为柔和饱满的苹果级圆角，彻底根除了 Chrome Popup 露底的生硬灰色直角边框。优化了开关 Switch 滑轨及滑块细节，并为各项选项增设了卡片悬浮浮动感。
+* **操作菜单极致精炼 (Merged Redundant Links)**：将弹窗底部原先冗余的两个管理按钮（`"Manage templates"` 与 `"Edit YouTube summary"`）精简合并为了一个统一优雅的 `"Configure templates"` 按钮。
+
+### Bug Fixes
+
+* **弹窗边缘露底修复 (Fixed Outer Popup Corner Bleed)**：消除了外层 body 容器上的 padding 差值，并将大圆角裁切直接绑定在 body 标签及白色底上，确保在高低 DPI 屏上都不会露出任何 Chrome 原生直角灰色底框。
+
 ## [0.0.15](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.14...v0.0.15) (2026-05-28)
 
 ### Features
