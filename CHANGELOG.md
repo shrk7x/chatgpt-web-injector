@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.15](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.14...v0.0.15) (2026-05-28)
+
+### Features
+
+* **极简下载按钮纯英文化 (English Translation for Subtitle Buttons)**：将 YouTube 字幕下载面板的中文按钮文字 `"SRT 字幕格式下载"` 和 `"TXT 纯文本格式下载"` 统一修改为了简洁优雅的英文标签 `"Download SRT"` 和 `"Download TXT"`，确保插件在不同语言的系统和浏览器中保持一致的纯英文界面。
+* **文档更新 (README Updates)**：更新了英文版的 `README.md`，加入了对 YouTube Subtitle Downloader 双格式一键离线下载特征的全面文档支持。
+
 ## [0.0.14](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.13...v0.0.14) (2026-05-25)
 
 ### Features
