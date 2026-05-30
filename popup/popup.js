@@ -7,7 +7,6 @@ import {
 
 const listEl = document.getElementById('template-list');
 const manageBtn = document.getElementById('manage-btn');
-const youtubeTemplateBtn = document.getElementById('youtube-template-btn');
 
 let state = { templates: [], activeTemplateId: '' };
 
@@ -85,11 +84,6 @@ listEl.addEventListener('keydown', (e) => {
 
 manageBtn.addEventListener('click', () => {
   chrome.tabs.create({ url: chrome.runtime.getURL('options/options.html') });
-  window.close();
-});
-
-youtubeTemplateBtn.addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('options/options.html#youtube-summary-template') });
   window.close();
 });
 
