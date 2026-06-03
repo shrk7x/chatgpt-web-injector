@@ -1,20 +1,23 @@
+/* 悬浮 BOT 按钮 — 透明磨砂玻璃风格 */
 #chatgpt-web-injector-tooltip {
   position: fixed;
   z-index: 2147483646;
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.15);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.2);
+    0 4px 16px rgba(0, 0, 0, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.08);
   padding: 0;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 #chatgpt-web-injector-tooltip::after {
@@ -29,10 +32,10 @@
 
 #chatgpt-web-injector-tooltip:hover {
   transform: translateY(-1px) scale(1.05);
-  filter: brightness(1.1);
+  background: rgba(255, 255, 255, 0.25);
   box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.5),
-    0 4px 12px rgba(0, 0, 0, 0.3);
+    0 8px 24px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 #chatgpt-web-injector-tooltip:focus-visible {
