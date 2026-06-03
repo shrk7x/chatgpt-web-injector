@@ -2,7 +2,9 @@ import {
   loadTemplates,
   saveTemplates,
   loadYoutubeSummaryTemporaryChatEnabled,
-  saveYoutubeSummaryTemporaryChatEnabled
+  saveYoutubeSummaryTemporaryChatEnabled,
+  loadSelectionTooltipEnabled,
+  saveSelectionTooltipEnabled
 } from '../src/storage.js';
 
 const listEl = document.getElementById('template-list');
@@ -88,6 +90,7 @@ manageBtn.addEventListener('click', () => {
 });
 
 const tempChatToggle = document.getElementById('youtube-temp-chat-toggle');
+const tooltipToggle = document.getElementById('floating-bot-toggle');
 
 async function init() {
   state = await loadTemplates();
@@ -102,12 +105,32 @@ async function init() {
     console.error('[ChatGPT Web Injector] Failed to load youtube summary temporary chat state:', err);
   }
 
+  try {
+    const tooltipEnabled = await loadSelectionTooltipEnabled();
+    if (tooltipToggle) {
+      tooltipToggle.checked = tooltipEnabled;
+    }
+  } catch (err) {
+    console.error('[ChatGPT Web Injector] Failed to load tooltip enabled state:', err);
+  }
+
   if (tempChatToggle) {
     tempChatToggle.addEventListener('change', async (e) => {
       try {
         await saveYoutubeSummaryTemporaryChatEnabled(e.target.checked);
       } catch (err) {
         console.error('[ChatGPT Web Injector] Failed to save youtube summary temporary chat state:', err);
+        e.target.checked = !e.target.checked;
+      }
+    });
+  }
+
+  if (tooltipToggle) {
+    tooltipToggle.addEventListener('change', async (e) => {
+      try {
+        await saveSelectionTooltipEnabled(e.target.checked);
+      } catch (err) {
+        console.error('[ChatGPT Web Injector] Failed to save tooltip enabled state:', err);
         e.target.checked = !e.target.checked;
       }
     });
