@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.17](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.16...v0.0.17) (2026-06-04)
+
+### Features
+
+* **悬浮 BOT 按钮控制 (Toggle Floating Bot Button)**：在 popup 弹窗中增加了“显示/隐藏页面悬浮 BOT 按钮”的开关选项，允许用户按需自由选择是否开启网页选词悬浮按钮。
+* **毛玻璃悬浮框效果 (Glassmorphism Frosted-glass Tooltip)**：将网页上取词后弹出的悬浮 BOT 按钮背景升级为更高级的毛玻璃（Frosted Glass）质感，并采用自适应暗色底图，确保在各类亮色网页上都具有出色的易读性和清晰度。
+
 ## [0.0.16](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.15...v0.0.16) (2026-05-29)
 
 ### Features
