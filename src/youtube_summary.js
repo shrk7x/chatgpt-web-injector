@@ -554,6 +554,26 @@ function getCaptionTracks(playerResponse) {
   return playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
 }
 
+/**
+ * 轮询等待 playerResponse 中的 captionTracks 数据，最多等待 TRANSCRIPT_DOM_WAIT_MS 毫秒。
+ * 返回 true 表示视频有可用字幕；返回 false 表示无字幕（直播/无字幕视频）。
+ */
+async function hasCaptionTracks() {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < TRANSCRIPT_DOM_WAIT_MS) {
+    const playerResponse = getPlayerResponseFromPageScripts();
+    if (playerResponse) {
+      // playerResponse 已解析，直接判断 captionTracks
+      return getCaptionTracks(playerResponse).length > 0;
+    }
+    await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
+  }
+
+  // 超时仍未找到 playerResponse，保守地返回 true 避免误隐藏
+  return true;
+}
+
 function getActiveCaptionLanguageCode() {
   const subtitlesButton = document.querySelector('.ytp-subtitles-button');
   const isPressed = subtitlesButton?.getAttribute('aria-pressed') === 'true';
@@ -952,12 +972,22 @@ function mountButton() {
 
   const summaryButton = createButton();
   subtitlesButton.insertAdjacentElement('afterend', summaryButton);
-  
+
   const transcriptButton = createTranscriptButton();
   summaryButton.insertAdjacentElement('afterend', transcriptButton);
 
   const downloadButton = createDownloadButton();
   transcriptButton.insertAdjacentElement('afterend', downloadButton);
+
+  // 挂载后异步检测字幕可用性：若该视频无字幕轨道则移除按钮，避免误导用户
+  hasCaptionTracks().then((captionsAvailable) => {
+    if (!captionsAvailable) {
+      log('该视频没有可用的字幕轨道，移除已挂载的功能按钮。');
+      removeButton();
+    }
+  }).catch(() => {
+    // 检测失败时保守保留按钮，让用户自行尝试
+  });
 }
 
 function handleNavigation() {
