@@ -24,6 +24,8 @@ let mountTimer = null;
 let statusTimer = null;
 let observerTimer = null;
 let observerRetryTimer = null;
+let latestCaptionCheckId = 0;
+const noCaptionUrls = new Set();
 
 function log(...args) {
   if (DEBUG) {
@@ -947,6 +949,11 @@ function mountButton() {
     return;
   }
 
+  // 已知无字幕的视频，直接跳过挂载，防止 Observer 触发无限循环
+  if (noCaptionUrls.has(window.location.href)) {
+    return;
+  }
+
   if (
     document.getElementById(YOUTUBE_SUMMARY_BUTTON_ID) &&
     document.getElementById(YOUTUBE_TRANSCRIPT_BUTTON_ID) &&
@@ -980,14 +987,23 @@ function mountButton() {
   transcriptButton.insertAdjacentElement('afterend', downloadButton);
 
   // 挂载后异步检测字幕可用性：若该视频无字幕轨道则移除按钮，避免误导用户
-  hasCaptionTracks().then((captionsAvailable) => {
-    if (!captionsAvailable) {
-      log('该视频没有可用的字幕轨道，移除已挂载的功能按钮。');
-      removeButton();
+  const captionCheckId = ++latestCaptionCheckId;
+  const mountUrl = window.location.href;
+  (async () => {
+    try {
+      const captionsAvailable = await hasCaptionTracks();
+      // 竞态保护：若检测期间已切换视频或触发了新一轮挂载，则丢弃过期结果
+      if (captionCheckId !== latestCaptionCheckId) return;
+      if (mountUrl !== window.location.href) return;
+      if (!captionsAvailable) {
+        log('该视频没有可用的字幕轨道，移除已挂载的功能按钮。');
+        noCaptionUrls.add(mountUrl);
+        removeButton();
+      }
+    } catch {
+      // 检测失败时保守保留按钮，让用户自行尝试
     }
-  }).catch(() => {
-    // 检测失败时保守保留按钮，让用户自行尝试
-  });
+  })();
 }
 
 function handleNavigation() {
@@ -997,6 +1013,8 @@ function handleNavigation() {
   }
 
   lastUrl = window.location.href;
+  // 切换视频时递增 captionCheckId，使前一次异步检测自动失效
+  latestCaptionCheckId += 1;
   removeButton();
   mountButton();
   observePlayerControls();
