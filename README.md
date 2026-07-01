@@ -45,16 +45,18 @@ No backend, no API key, no database.
 
 ---
 
-## YouTube Subtitle Downloader (v0.0.14)
+## YouTube Helper & Subtitle Downloader (v0.0.18)
 
-A built-in feature that enables you to download YouTube subtitles directly from the video player controls.
+A built-in suite that enables you to summarize YouTube videos, interact with transcript panels, and download subtitles directly from video player controls.
 
-- **Zero-intrusive Native Button**: A minimalist download icon `📥` is injected right next to the YouTube player's `CC` button, blending perfectly with native player aesthetics.
-- **Dual Format Offline Download**: Clicking the button pops up a sleek glassmorphism dropdown popover menu, providing two output formats:
-  - **`SRT`**: High-precision SubRip subtitle format with accurate millisecond timestamps (`00:00:12,345`), sorted chronologically and fully compatible with local media players (VLC, IINA, PotPlayer, etc.).
-  - **`TXT`**: Clean plain-text reader format with all timestamps and redundant linebreaks stripped, merged into smooth paragraphs. **Perfect for copying straight into ChatGPT for summary and quick reading.**
-- **100% Robust Fallback Chain**: Heavy-duty extraction workflow powered by the timedtext API, YouTube InnerTube API fallback, and direct DOM segment extraction, guaranteeing a 100% success rate under YouTube's strict crawler prevention.
-- **Memory Leak Protection**: Event listeners are carefully bound in the capture phase for reliability and automatically detached on menu closures to ensure zero overhead.
+- **Zero-intrusive Native Buttons**: Minimalist icons and controls (AI Summary, Transcript, Download Subtitles) are injected right next to the YouTube player's `CC` button, blending perfectly with native player aesthetics.
+- **Intelligent Button Visibility**: Automatically detects caption availability asynchronously upon video load. If a video does not have any captions (such as live streams or uploads without CC), all injected summary/download buttons are cleanly removed, preventing UI clutter and user frustration.
+- **Robust Single-Page-App (SPA) Navigation**: Utilizes request tracking (`latestCaptionCheckId`) and video ID checks to prevent stale UI states and race conditions when users navigate continuously between multiple videos without reloading the page.
+- **Dual Format Offline Download**: Clicking the download button displays a sleek popover menu providing two formats:
+  - **`SRT`**: High-precision SubRip format with accurate millisecond timestamps (`00:00:12,345`), sorted chronologically.
+  - **`TXT`**: Clean reader format with all timestamps and redundant linebreaks stripped, perfect for pasting directly into LLMs.
+- **100% Robust Fallback Chain & Expanders**: Heavy-duty extraction workflow powered by the timedtext API, InnerTube API, and direct DOM segment extraction. Includes compatibility layers that automatically expand modern YouTube description elements (`ytd-text-inline-expander`) and guard structured panels to locate native subtitle endpoints reliably.
+- **Memory Leak Protection**: Event listeners are carefully bound in the capture phase for reliability and automatically detached on menu closures, with FIFO limits applied to local states to keep long-running browser tabs lightweight.
 
 ---
 
