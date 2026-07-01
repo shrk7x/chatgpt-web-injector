@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.0.17](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.16...v0.0.17) (2026-06-04)
+## [0.0.18](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.17...v0.0.18) (2026-07-01)
+
+### Bug Fixes
+
+* **youtube:** hide summary, transcript, and download buttons on videos without captions ([#65](https://github.com/qcwssss/chatgpt-web-injector/pull/65))
+* **workflow:** explicitly specify config-file and manifest-file in release action ([#66](https://github.com/qcwssss/chatgpt-web-injector/pull/66))
 
 ### Features
 
