@@ -320,17 +320,16 @@
     }
 
     const lines = transcriptText.split('\n').filter(Boolean);
-    const parsedTexts = [];
+    const parsedLines = [];
 
     for (const line of lines) {
-      const textStart = line.indexOf(']') + 1;
-      const text = textStart > 0 ? line.substring(textStart).trim() : line.trim();
-      if (text) {
-        parsedTexts.push(text);
+      const trimmed = line.trim();
+      if (trimmed) {
+        parsedLines.push(trimmed);
       }
     }
 
-    return parsedTexts.join(' ').replace(/\s+/g, ' ');
+    return parsedLines.join('\n');
   }
 
   globalScope.ChatgptWebInjectorYoutubeTranscript = {

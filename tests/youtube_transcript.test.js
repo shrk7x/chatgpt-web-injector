@@ -231,10 +231,10 @@ test('convertToSrt handles empty or invalid transcript gracefully', () => {
   assert.equal(convertToSrt('invalid text'), '');
 });
 
-test('convertToTxt converts transcript text by stripping timestamps and joining with spaces', () => {
+test('convertToTxt converts transcript text by keeping timestamps and splitting into lines', () => {
   const { convertToTxt } = loadHelpers();
   const transcript = '[00:12] Hello world\n[01:05] Next line\n[01:05:30] Third line';
-  const expected = 'Hello world Next line Third line';
+  const expected = '[00:12] Hello world\n[01:05] Next line\n[01:05:30] Third line';
   assert.equal(convertToTxt(transcript), expected);
 });
 
