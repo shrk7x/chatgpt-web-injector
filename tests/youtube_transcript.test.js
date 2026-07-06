@@ -231,10 +231,10 @@ test('convertToSrt handles empty or invalid transcript gracefully', () => {
   assert.equal(convertToSrt('invalid text'), '');
 });
 
-test('convertToTxt converts transcript text by stripping timestamps and joining with spaces', () => {
+test('convertToTxt converts transcript text by keeping timestamps and splitting into lines', () => {
   const { convertToTxt } = loadHelpers();
   const transcript = '[00:12] Hello world\n[01:05] Next line\n[01:05:30] Third line';
-  const expected = 'Hello world Next line Third line';
+  const expected = '[00:12] Hello world\n[01:05] Next line\n[01:05:30] Third line';
   assert.equal(convertToTxt(transcript), expected);
 });
 
@@ -244,5 +244,45 @@ test('convertToTxt handles empty or invalid transcript gracefully', () => {
   assert.equal(convertToTxt(null), '');
 });
 
+test('parseTranscript handles wireCues json3 variant', () => {
+  const { parseTranscript } = loadHelpers();
+  const json = JSON.stringify({
+    wireCues: [
+      { tStartMs: 1000, cues: [{ utf8: 'Wire cue line' }] },
+      { tStartMs: 65000, cues: [{ utf8: 'Second ' }, { utf8: 'wire' }] },
+    ],
+  });
 
+  assert.equal(parseTranscript(json), '[00:01] Wire cue line\n[01:05] Second wire');
+});
+
+test('parseTranscript handles wpCues json3 variant', () => {
+  const { parseTranscript } = loadHelpers();
+  const json = JSON.stringify({
+    wpCues: [
+      { wpTStartMs: 2000, wpSegs: [{ utf8: 'WP cue line' }] },
+      { wpTStartMs: 130000, wpSegs: [{ utf8: 'Another' }] },
+    ],
+  });
+
+  assert.equal(parseTranscript(json), '[00:02] WP cue line\n[02:10] Another');
+});
+
+test('parseTranscript handles events with top-level utf8 field', () => {
+  const { parseTranscript } = loadHelpers();
+  const json = JSON.stringify({
+    events: [
+      { tStartMs: 500, utf8: 'Direct text' },
+      { tStartMs: 3000, utf8: 'More text' },
+    ],
+  });
+
+  assert.equal(parseTranscript(json), '[00:00] Direct text\n[00:03] More text');
+});
+
+test('parseTranscript returns empty for unknown json structure', () => {
+  const { parseTranscript } = loadHelpers();
+  const json = JSON.stringify({ unknownKey: [{ data: 'test' }] });
+  assert.equal(parseTranscript(json), '');
+});
 

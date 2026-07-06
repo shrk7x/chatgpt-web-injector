@@ -101,21 +101,26 @@
       return '';
     }
 
-    if (!Array.isArray(data.events)) {
+    // YouTube json3 格式存在多种结构变体，按优先级依次尝试
+    const events = data.events ?? data.wireCues ?? data.wpCues ?? null;
+    if (!Array.isArray(events)) {
       return '';
     }
 
-    return data.events
+    return events
       .map((event) => {
-        const text = Array.isArray(event.segs)
-          ? event.segs.map((segment) => segment?.utf8 ?? '').join('').trim()
-          : '';
+        // 兼容多种字段名: segs / cues / wpSegs
+        const segments = event?.segs ?? event?.cues ?? event?.wpSegs;
+        const text = Array.isArray(segments)
+          ? segments.map((segment) => segment?.utf8 ?? '').join('').trim()
+          : (event?.utf8 ?? '').trim();
 
         if (!text) {
           return '';
         }
 
-        return `[${formatTimestamp((event.tStartMs ?? 0) / 1000)}] ${text}`;
+        const startMs = event?.tStartMs ?? event?.wpTStartMs ?? 0;
+        return `[${formatTimestamp(startMs / 1000)}] ${text}`;
       })
       .filter(Boolean)
       .join('\n');
@@ -314,18 +319,11 @@
       return '';
     }
 
-    const lines = transcriptText.split('\n').filter(Boolean);
-    const parsedTexts = [];
-
-    for (const line of lines) {
-      const textStart = line.indexOf(']') + 1;
-      const text = textStart > 0 ? line.substring(textStart).trim() : line.trim();
-      if (text) {
-        parsedTexts.push(text);
-      }
-    }
-
-    return parsedTexts.join(' ').replace(/\s+/g, ' ');
+    return transcriptText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n');
   }
 
   globalScope.ChatgptWebInjectorYoutubeTranscript = {
