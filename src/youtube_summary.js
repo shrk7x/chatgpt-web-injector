@@ -388,13 +388,14 @@ function expandDescription() {
     return false;
   }
 
+  const expandPattern = /\.\.\.(?:more|更多)|show more|展开|展開|顯示更多|显示更多/i;
+
   // 优先尝试点击新版 YouTube 中的描述展开组件以激活结构化内容
   const inlineExpander = container.querySelector('ytd-text-inline-expander');
   if (inlineExpander) {
     const expandBtn = inlineExpander.querySelector('#expand');
-    // 如果存在 #expand 且它没有被 hidden（表示还未展开）
+    // 如果存在 #expand 且它没有被 hidden（表示还未展开），只点击 expandBtn 避免双击切换
     if (expandBtn && !expandBtn.hasAttribute('hidden') && expandBtn.getAttribute('aria-hidden') !== 'true') {
-      inlineExpander.click();
       expandBtn.click();
       return true;
     }
@@ -402,14 +403,12 @@ function expandDescription() {
 
   const divDesc = container.querySelector('div#description');
   if (divDesc) {
-    const expandPattern = /\.\.\.(?:more|更多)|show more|展开|展開|顯示更多|显示更多/i;
     if (expandPattern.test(divDesc.textContent || '')) {
       divDesc.click();
       return true;
     }
   }
 
-  const expandPattern = /\.\.\.(?:more|更多)|show more|展开|展開|顯示更多|显示更多/i;
   const expandElements = container.querySelectorAll('tp-yt-paper-button, button, [id="expand"], ytd-button-renderer, [role="button"]');
 
   for (const el of expandElements) {
@@ -559,15 +558,17 @@ async function fetchInnertubeTranscript() {
 
   // SPA 导航后 <script> 标签可能不包含当前视频的 params，从重新拉取的 HTML 中提取
   if (!key || !clientVersion || !params) {
-    const html = await fetch(window.location.href, { credentials: 'include' })
-      .then((r) => r.ok ? r.text() : '')
-      .catch(() => '');
+    let html = '';
+    try {
+      const r = await fetch(window.location.href, { credentials: 'include' });
+      html = r.ok ? await r.text() : '';
+    } catch {
+      html = '';
+    }
     if (html) {
       key = key || getInnertubeValueFromHtml(html, 'INNERTUBE_API_KEY');
       clientVersion = clientVersion || getInnertubeValueFromHtml(html, 'INNERTUBE_CLIENT_VERSION');
       visitorData = visitorData || getInnertubeValueFromHtml(html, 'VISITOR_DATA');
-      hl = hl || getInnertubeValueFromHtml(html, 'HL') || 'en';
-      gl = gl || getInnertubeValueFromHtml(html, 'GL') || 'US';
       params = params || getTranscriptParamsFromHtml(html);
     }
   }

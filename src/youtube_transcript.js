@@ -110,16 +110,16 @@
     return events
       .map((event) => {
         // 兼容多种字段名: segs / cues / wpSegs
-        const segments = event.segs ?? event.cues ?? event.wpSegs;
+        const segments = event?.segs ?? event?.cues ?? event?.wpSegs;
         const text = Array.isArray(segments)
           ? segments.map((segment) => segment?.utf8 ?? '').join('').trim()
-          : (event.utf8 ?? '').trim();
+          : (event?.utf8 ?? '').trim();
 
         if (!text) {
           return '';
         }
 
-        const startMs = event.tStartMs ?? event.wpTStartMs ?? 0;
+        const startMs = event?.tStartMs ?? event?.wpTStartMs ?? 0;
         return `[${formatTimestamp(startMs / 1000)}] ${text}`;
       })
       .filter(Boolean)
@@ -319,17 +319,11 @@
       return '';
     }
 
-    const lines = transcriptText.split('\n').filter(Boolean);
-    const parsedLines = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed) {
-        parsedLines.push(trimmed);
-      }
-    }
-
-    return parsedLines.join('\n');
+    return transcriptText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n');
   }
 
   globalScope.ChatgptWebInjectorYoutubeTranscript = {
