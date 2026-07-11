@@ -2,32 +2,58 @@
   "manifest_version": 3,
   "name": "ChatGPT Web Injector",
   "description": "Send selected webpage content to ChatGPT with reusable prompt templates.",
-  "version": "0.0.18",
-  "permissions": ["contextMenus", "storage", "tabs", "scripting", "activeTab"],
-  "host_permissions": ["https://chatgpt.com/*", "<all_urls>"],
+  "version": "0.1.0",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "src/service_worker.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["src/youtube_transcript.js", "src/youtube_summary.js"],
-      "css": ["src/youtube_summary.css"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "src/youtube_transcript.js",
+        "src/youtube_summary.js"
+      ],
+      "css": [
+        "src/youtube_summary.css"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["<all_urls>"],
-      "js": ["src/selection_tooltip.js"],
-      "css": ["src/selection_tooltip.css"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/selection_tooltip.js"
+      ],
+      "css": [
+        "src/selection_tooltip.css"
+      ],
       "run_at": "document_idle"
     }
   ],
   "options_page": "options/options.html",
   "web_accessible_resources": [
     {
-      "resources": ["icons/icon32.png"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "icons/icon32.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "icons": {
