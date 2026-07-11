@@ -636,7 +636,16 @@ async function hasCaptionTracks(videoId) {
     await new Promise((resolve) => { setTimeout(resolve, TRANSCRIPT_DOM_POLL_MS); });
   }
 
-  // 超时仍未找到 playerResponse，保守地返回 true 避免误隐藏
+  // 超时仍未找到匹配的 playerResponse（SPA 导航后 <script> 标签数据过期），
+  // 主动 fetch 当前页面 HTML 获取最新数据，而非保守返回 true 导致无字幕视频仍显示按钮
+  try {
+    const freshResponse = await fetchCurrentPlayerResponse();
+    if (freshResponse && freshResponse.videoDetails?.videoId === videoId) {
+      return getCaptionTracks(freshResponse).length > 0;
+    }
+  } catch {
+    // fetch 失败时保守返回 true，避免误隐藏
+  }
   return true;
 }
 
