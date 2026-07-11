@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.1.0](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.0.18...chatgpt-web-injector-v0.1.0) (2026-07-11)
+
+
+### Features
+
+* add elegant srt subtitle downloader directly in youtube transcript panel ([#55](https://github.com/shrk7x/chatgpt-web-injector/issues/55)) ([b4bb9fb](https://github.com/shrk7x/chatgpt-web-injector/commit/b4bb9fb3e448ec13bdd4323bbd31acee3baf3e5e))
+* add temporary chat toggle directly to extension popup ([#51](https://github.com/shrk7x/chatgpt-web-injector/issues/51)) ([da70714](https://github.com/shrk7x/chatgpt-web-injector/commit/da7071438c31f111ec1e9c7c341d87928139c312))
+* add YouTube caption summary flow ([#27](https://github.com/shrk7x/chatgpt-web-injector/issues/27)) ([4bb4ea0](https://github.com/shrk7x/chatgpt-web-injector/commit/4bb4ea0d58e40bcbcf7b10224ade11b6b4442fc3))
+* allow users to hide the text selection BOT button ([#48](https://github.com/shrk7x/chatgpt-web-injector/issues/48)) ([9b61029](https://github.com/shrk7x/chatgpt-web-injector/commit/9b61029ea3813577f754b679760a36599195abd0))
+* auto-send message after ChatGPT injection ([#21](https://github.com/shrk7x/chatgpt-web-injector/issues/21)) ([af7593b](https://github.com/shrk7x/chatgpt-web-injector/commit/af7593bb166a5a588e5f5d30eb4f7a178c0849a7))
+* automate GitHub Releases via release-please ([#25](https://github.com/shrk7x/chatgpt-web-injector/issues/25)) ([91a73ba](https://github.com/shrk7x/chatgpt-web-injector/commit/91a73bace43c37a14bbbdfe3714702f58be5c335))
+* browser action popup for quick template switching ([#23](https://github.com/shrk7x/chatgpt-web-injector/issues/23)) ([9338fab](https://github.com/shrk7x/chatgpt-web-injector/commit/9338fabcb69028b3128d6a211bd1a06a8f6dcb08)), closes [#22](https://github.com/shrk7x/chatgpt-web-injector/issues/22)
+* merge redundant settings buttons in popup into a single configure link ([#59](https://github.com/shrk7x/chatgpt-web-injector/issues/59)) ([d65ff90](https://github.com/shrk7x/chatgpt-web-injector/commit/d65ff9062d02b967bfdb9dc86b55f303f8117315))
+* multi-template support with context menu submenu ([#11](https://github.com/shrk7x/chatgpt-web-injector/issues/11)) ([fd897ff](https://github.com/shrk7x/chatgpt-web-injector/commit/fd897ff463396fae2061a9e896e54eebbb5e5fe6))
+* **mvp:** add MV3 scaffold and context menu click logging ([a143900](https://github.com/shrk7x/chatgpt-web-injector/commit/a1439007188a4ecbd683e7bc12969f1ee3e00a5f))
+* **mvp:** complete options and ChatGPT send flow ([#4](https://github.com/shrk7x/chatgpt-web-injector/issues/4)) ([447b873](https://github.com/shrk7x/chatgpt-web-injector/commit/447b873344c707e98f1676cc3c8c83f7d8493cbc))
+* **popup:** add option to toggle floating bot button in popup ([#61](https://github.com/shrk7x/chatgpt-web-injector/issues/61)) ([8daff38](https://github.com/shrk7x/chatgpt-web-injector/commit/8daff38775d96af97315eba739b4b4dfc393087f))
+* prioritize YouTube summary section and rename general templates in options page ([#54](https://github.com/shrk7x/chatgpt-web-injector/issues/54)) ([31a0644](https://github.com/shrk7x/chatgpt-web-injector/commit/31a06443b66c58600af02ec69253da5ac4656753))
+* replace tooltip arrow with robot icon and add extension icons ([#12](https://github.com/shrk7x/chatgpt-web-injector/issues/12)) ([d1e4617](https://github.com/shrk7x/chatgpt-web-injector/commit/d1e461758aa0962da4ebed18b88651e88dc82368))
+* show floating icon on text selection to trigger ChatGPT send ([#8](https://github.com/shrk7x/chatgpt-web-injector/issues/8)) ([9f53721](https://github.com/shrk7x/chatgpt-web-injector/commit/9f53721c9caf920b737281198a0154317ce7d33b))
+* translate YouTube download button labels to English ([#57](https://github.com/shrk7x/chatgpt-web-injector/issues/57)) ([72a1d93](https://github.com/shrk7x/chatgpt-web-injector/commit/72a1d930e582b2e7c492173f5b5455f66aa5af5b))
+
+
+### Bug Fixes
+
+* avoid clicking YouTube transcript segments ([#43](https://github.com/shrk7x/chatgpt-web-injector/issues/43)) ([fc8b685](https://github.com/shrk7x/chatgpt-web-injector/commit/fc8b68553da7f46ca1148ec5ba0fc15e5b5daec6))
+* change tooltip button label from G to BOT (closes [#19](https://github.com/shrk7x/chatgpt-web-injector/issues/19)) ([#20](https://github.com/shrk7x/chatgpt-web-injector/issues/20)) ([2fedd2c](https://github.com/shrk7x/chatgpt-web-injector/commit/2fedd2cd38ebfe976d9f2eb874967d19f79a3c46))
+* chatgpt tab load timeout and add privacy policy ([8f98a49](https://github.com/shrk7x/chatgpt-web-injector/commit/8f98a49572180a50ffc2c1ea29517b7152b13577))
+* ensure tooltip icon displays on selection ([#17](https://github.com/shrk7x/chatgpt-web-injector/issues/17)) ([4ffa5da](https://github.com/shrk7x/chatgpt-web-injector/commit/4ffa5da6fa8cf94c2b2fd953988a6c42d26f4571))
+* expand close button search to outermost engagement panel ([#50](https://github.com/shrk7x/chatgpt-web-injector/issues/50)) ([ab2d18b](https://github.com/shrk7x/chatgpt-web-injector/commit/ab2d18b310bc0e7e625479123d0f4e67541ff9b3))
+* improve selection tooltip button UI ([#47](https://github.com/shrk7x/chatgpt-web-injector/issues/47)) ([5e4835c](https://github.com/shrk7x/chatgpt-web-injector/commit/5e4835c70705355437f0181f9a32dba069c7c956))
+* keep timestamps and line breaks in TXT subtitle downloads ([#68](https://github.com/shrk7x/chatgpt-web-injector/issues/68)) ([d6ea312](https://github.com/shrk7x/chatgpt-web-injector/commit/d6ea31251b813e4fd5cb69deb47539d86d51a1d7))
+* prevent misclicking transcript segments during close button search ([#49](https://github.com/shrk7x/chatgpt-web-injector/issues/49)) ([126a805](https://github.com/shrk7x/chatgpt-web-injector/commit/126a805c5621639b4bdf17704315b724290116d7))
+* resolve transcript button not found in hidden description panels ([#44](https://github.com/shrk7x/chatgpt-web-injector/issues/44)) ([85fcfe0](https://github.com/shrk7x/chatgpt-web-injector/commit/85fcfe0f9b0ff7dec7e31a432fcfc68d668c367d))
+* restore hidden YouTube transcript fallback ([#41](https://github.com/shrk7x/chatgpt-web-injector/issues/41)) ([0360835](https://github.com/shrk7x/chatgpt-web-injector/commit/0360835c19a1faff43f46522956d735849a7bbe6))
+* serialize context menu rebuild to avoid duplicate IDs ([#14](https://github.com/shrk7x/chatgpt-web-injector/issues/14)) ([dd5efae](https://github.com/shrk7x/chatgpt-web-injector/commit/dd5efaeb1b6428d68fd2bdc2585aa50449812064))
+* toggle YouTube transcript panel ([#40](https://github.com/shrk7x/chatgpt-web-injector/issues/40)) ([3e61ff3](https://github.com/shrk7x/chatgpt-web-injector/commit/3e61ff3e955f67d0ba605151a876b00e9a4d2775))
+* **workflow:** explicitly configure config-file and manifest-file for release-please-action to prevent Action execution failure. ([954bebe](https://github.com/shrk7x/chatgpt-web-injector/commit/954bebed6c510de8716c88fbeb75d2af659b36a8))
+* **workflow:** explicitly specify release-please config files ([#66](https://github.com/shrk7x/chatgpt-web-injector/issues/66)) ([954bebe](https://github.com/shrk7x/chatgpt-web-injector/commit/954bebed6c510de8716c88fbeb75d2af659b36a8))
+* **youtube:** hide summary buttons when video has no captions ([#65](https://github.com/shrk7x/chatgpt-web-injector/issues/65)) ([9a0ac62](https://github.com/shrk7x/chatgpt-web-injector/commit/9a0ac626922cde5c67d95d761fd99e5b5a055cca))
+* **youtube:** hide summary/transcript/download buttons on videos without captions ([9a0ac62](https://github.com/shrk7x/chatgpt-web-injector/commit/9a0ac626922cde5c67d95d761fd99e5b5a055cca))
+
 ## [0.0.18](https://github.com/qcwssss/chatgpt-web-injector/compare/v0.0.17...v0.0.18) (2026-07-01)
 
 ### Bug Fixes
