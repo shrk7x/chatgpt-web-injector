@@ -27,6 +27,96 @@ function loadYoutubeSummary(dom, options = {}) {
   }
 }
 
+function createPlayerResponseScript(videoId, captionTracks) {
+  return `<script>var ytInitialPlayerResponse = ${JSON.stringify({
+    videoDetails: { videoId },
+    captions: {
+      playerCaptionsTracklistRenderer: { captionTracks },
+    },
+  })};</script>`;
+}
+
+function getCaptionControls(document) {
+  return [
+    document.getElementById('chatgpt-web-injector-youtube-summary'),
+    document.getElementById('chatgpt-web-injector-youtube-transcript'),
+    document.getElementById('chatgpt-web-injector-youtube-download'),
+  ];
+}
+
+test('YouTube caption controls stay hidden until captions are confirmed', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        ${createPlayerResponseScript('test123', [{ baseUrl: 'https://example.com/captions' }])}
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  loadYoutubeSummary(dom);
+
+  assert.deepEqual(getCaptionControls(dom.window.document).map((control) => control?.hidden), [true, true, true]);
+
+  await Promise.resolve();
+
+  assert.deepEqual(getCaptionControls(dom.window.document).map((control) => control?.hidden), [false, false, false]);
+});
+
+test('YouTube caption controls are removed when captions are unavailable', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        ${createPlayerResponseScript('test123', [])}
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+
+  loadYoutubeSummary(dom);
+  await Promise.resolve();
+
+  assert.deepEqual(getCaptionControls(dom.window.document), [null, null, null]);
+});
+
+test('YouTube caption controls remain hidden when availability is unknown', async () => {
+  const dom = new JSDOM(`
+    <html>
+      <body>
+        <div class="ytp-chrome-controls">
+          <button class="ytp-subtitles-button" aria-pressed="false">CC</button>
+        </div>
+      </body>
+    </html>
+  `, {
+    runScripts: 'outside-only',
+    url: 'https://www.youtube.com/watch?v=test123',
+  });
+  let dateCallCount = 0;
+  dom.window.Date.now = () => {
+    dateCallCount += 1;
+    return dateCallCount === 1 ? 0 : 3001;
+  };
+  dom.window.fetch = async () => {
+    throw new Error('network unavailable');
+  };
+
+  loadYoutubeSummary(dom);
+  await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+  assert.deepEqual(getCaptionControls(dom.window.document).map((control) => control?.hidden), [true, true, true]);
+});
+
 test('YouTube summary controls include a transcript panel button', () => {
   const dom = new JSDOM(`
     <html>

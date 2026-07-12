@@ -617,7 +617,7 @@ function getCaptionTracks(playerResponse) {
 /**
  * 轮询等待 playerResponse 中的 captionTracks 数据，最多等待 TRANSCRIPT_DOM_WAIT_MS 毫秒。
  * @param {string} videoId - 当前视频的 ID，用于校验 playerResponse 是否匹配当前视频
- * 返回 true 表示视频有可用字幕；返回 false 表示无字幕（直播/无字幕视频）。
+ * 返回 true 表示视频有可用字幕；返回 false 表示无字幕；返回 null 表示无法判断。
  */
 async function hasCaptionTracks(videoId) {
   const startedAt = Date.now();
@@ -644,9 +644,9 @@ async function hasCaptionTracks(videoId) {
       return getCaptionTracks(freshResponse).length > 0;
     }
   } catch {
-    // fetch 失败时保守返回 true，避免误隐藏
+    // fetch 失败时保持未知状态，避免显示不可用的按钮
   }
-  return true;
+  return null;
 }
 
 function getActiveCaptionLanguageCode() {
@@ -1059,7 +1059,12 @@ function mountButton() {
   const downloadButton = createDownloadButton();
   transcriptButton.insertAdjacentElement('afterend', downloadButton);
 
-  // 挂载后异步检测字幕可用性：若该视频无字幕轨道则移除按钮，避免误导用户
+  const controls = [summaryButton, transcriptButton, downloadButton];
+  controls.forEach((control) => {
+    control.hidden = true;
+  });
+
+  // 挂载后异步检测字幕可用性：仅在确认有字幕轨道后显示按钮
   const captionCheckId = ++latestCaptionCheckId;
   const mountUrl = window.location.href;
   const currentVideoId = new URLSearchParams(window.location.search).get('v');
@@ -1069,7 +1074,13 @@ function mountButton() {
       // 竞态保护：若检测期间已切换视频或触发了新一轮挂载，则丢弃过期结果
       if (captionCheckId !== latestCaptionCheckId) return;
       if (mountUrl !== window.location.href) return;
-      if (!captionsAvailable) {
+      if (captionsAvailable === true) {
+        controls.forEach((control) => {
+          control.hidden = false;
+        });
+        return;
+      }
+      if (captionsAvailable === false) {
         log('该视频没有可用的字幕轨道，移除已挂载的功能按钮。');
         // FIFO 策略限制缓存大小，防止 SPA 长时间使用导致内存泄漏
         if (noCaptionUrls.size >= NO_CAPTION_CACHE_LIMIT) {
@@ -1080,7 +1091,7 @@ function mountButton() {
         removeButton();
       }
     } catch {
-      // 检测失败时保守保留按钮，让用户自行尝试
+      // 检测异常时保持按钮隐藏，避免显示不可用功能或触发重复挂载
     }
   })();
 }
