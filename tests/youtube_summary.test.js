@@ -89,7 +89,7 @@ test('YouTube caption controls are removed when captions are unavailable', async
   assert.deepEqual(getCaptionControls(dom.window.document), [null, null, null]);
 });
 
-test('YouTube caption controls remain hidden when availability is unknown', async () => {
+test('YouTube caption controls are shown when availability is unknown', async () => {
   const dom = new JSDOM(`
     <html>
       <body>
@@ -114,7 +114,7 @@ test('YouTube caption controls remain hidden when availability is unknown', asyn
   loadYoutubeSummary(dom);
   await new Promise((resolve) => { setTimeout(resolve, 0); });
 
-  assert.deepEqual(getCaptionControls(dom.window.document).map((control) => control?.hidden), [true, true, true]);
+  assert.deepEqual(getCaptionControls(dom.window.document).map((control) => control?.hidden), [false, false, false]);
 });
 
 test('YouTube summary controls include a transcript panel button', () => {

@@ -1063,6 +1063,11 @@ function mountButton() {
   controls.forEach((control) => {
     control.hidden = true;
   });
+  const revealControls = () => {
+    controls.forEach((control) => {
+      control.hidden = false;
+    });
+  };
 
   // 挂载后异步检测字幕可用性：仅在确认有字幕轨道后显示按钮
   const captionCheckId = ++latestCaptionCheckId;
@@ -1074,10 +1079,8 @@ function mountButton() {
       // 竞态保护：若检测期间已切换视频或触发了新一轮挂载，则丢弃过期结果
       if (captionCheckId !== latestCaptionCheckId) return;
       if (mountUrl !== window.location.href) return;
-      if (captionsAvailable === true) {
-        controls.forEach((control) => {
-          control.hidden = false;
-        });
+      if (captionsAvailable !== false) {
+        revealControls();
         return;
       }
       if (captionsAvailable === false) {
@@ -1091,7 +1094,9 @@ function mountButton() {
         removeButton();
       }
     } catch {
-      // 检测异常时保持按钮隐藏，避免显示不可用功能或触发重复挂载
+      if (captionCheckId !== latestCaptionCheckId) return;
+      if (mountUrl !== window.location.href) return;
+      revealControls();
     }
   })();
 }
@@ -1136,4 +1141,3 @@ function observePlayerControls() {
 observePlayerControls();
 handleNavigation();
 }());
-

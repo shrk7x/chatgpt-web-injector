@@ -4,7 +4,7 @@
 
 **Goal:** Keep YouTube summary, transcript, and subtitle-download controls hidden until the current video is confirmed to have caption tracks.
 
-**Architecture:** Preserve the existing mount and SPA race-protection flow. Mount all three controls with their native `hidden` property set, then reveal them together only when `hasCaptionTracks(videoId)` returns `true`; remove and cache them for confirmed no-caption results, while unknown/error results remain mounted and hidden to avoid a MutationObserver remount loop.
+**Architecture:** Preserve the existing mount and SPA race-protection flow. Mount all three controls with their native `hidden` property set, then reveal them together when `hasCaptionTracks(videoId)` returns `true` or `null`; remove and cache them only for confirmed no-caption results.
 
 **Tech Stack:** Manifest V3 Chrome extension, plain JavaScript, Node.js built-in test runner, jsdom.
 
@@ -30,7 +30,7 @@
 
 - [ ] **Step 1: Write failing DOM regression tests**
 
-Add a helper that embeds a matching `ytInitialPlayerResponse` and tests that all three controls are hidden synchronously, become visible after a caption-positive result, and are removed after a caption-negative result. Add an unknown-result test by advancing `Date.now()` beyond the polling window and rejecting `fetch()`, then verify the controls remain mounted and hidden.
+Add a helper that embeds a matching `ytInitialPlayerResponse` and tests that all three controls are hidden synchronously, become visible after a caption-positive result, and are removed after a caption-negative result. Add an unknown-result test by advancing `Date.now()` beyond the polling window and rejecting `fetch()`, then verify the controls become visible.
 
 ```js
 function createPlayerResponseScript(videoId, captionTracks) {
@@ -53,9 +53,9 @@ test('YouTube caption controls are removed when captions are unavailable', async
   // Await one microtask and assert all three controls are absent.
 });
 
-test('YouTube caption controls remain hidden when availability is unknown', async () => {
+test('YouTube caption controls are shown when availability is unknown', async () => {
   // Force polling to expire and fetch to reject.
-  // Await the async check and assert all three controls remain hidden.
+  // Await the async check and assert all three controls become visible.
 });
 ```
 
@@ -67,7 +67,7 @@ Expected: the hidden-until-confirmed assertion fails because controls are curren
 
 - [ ] **Step 3: Implement the minimal visibility behavior**
 
-Change `hasCaptionTracks()` to return `null` when its fallback cannot obtain a matching player response. Set all three newly mounted controls to `hidden = true`. After the existing stale-result guards, reveal all three only for `captionsAvailable === true`; cache and remove controls for `false`; leave controls mounted and hidden for `null` or thrown errors.
+Change `hasCaptionTracks()` to return `null` when its fallback cannot obtain a matching player response. Set all three newly mounted controls to `hidden = true`. After the existing stale-result guards, reveal all three for any result except `false`; cache and remove controls only for `false`; reveal controls for `null` or thrown errors.
 
 ```js
 const controls = [summaryButton, transcriptButton, downloadButton];
