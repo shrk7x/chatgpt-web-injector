@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.1.0...chatgpt-web-injector-v0.1.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* hide YouTube controls until captions are confirmed ([#73](https://github.com/shrk7x/chatgpt-web-injector/issues/73)) ([042f4b8](https://github.com/shrk7x/chatgpt-web-injector/commit/042f4b89afae4f4e58bc9030213d647cdc217469))
+* show YouTube controls when captions are unknown ([#74](https://github.com/shrk7x/chatgpt-web-injector/issues/74)) ([9d8c830](https://github.com/shrk7x/chatgpt-web-injector/commit/9d8c8307a8874542be26ec6e3548eb8623636aa1))
+* **workflow:** remove duplicate project name in release zip filename ([68c3da3](https://github.com/shrk7x/chatgpt-web-injector/commit/68c3da3868d2d7ebdec3b53a452402e7ad751412))
+* 修复 SPA 导航到无字幕视频时插件按钮不隐藏的问题 ([#72](https://github.com/shrk7x/chatgpt-web-injector/issues/72)) ([1482d3e](https://github.com/shrk7x/chatgpt-web-injector/commit/1482d3e0db61e15c8dcb0cb1b4c2bfcdf76531f5))
+
 ## [0.1.0](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.0.18...chatgpt-web-injector-v0.1.0) (2026-07-11)
 
 

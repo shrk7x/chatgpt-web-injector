@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChatGPT Web Injector",
   "description": "Send selected webpage content to ChatGPT with reusable prompt templates.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "permissions": [
     "contextMenus",
     "storage",
