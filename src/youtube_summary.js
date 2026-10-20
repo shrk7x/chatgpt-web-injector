@@ -549,12 +549,16 @@ async function fetchCurrentPlayerResponse() {
 }
 
 async function fetchInnertubeTranscript() {
+  const videoId = new URLSearchParams(window.location.search).get('v');
+  const pageResponse = getPlayerResponseFromPageScripts();
   let key = getInnertubeValue('INNERTUBE_API_KEY');
   let clientVersion = getInnertubeValue('INNERTUBE_CLIENT_VERSION');
   let visitorData = getInnertubeValue('VISITOR_DATA');
   let hl = getInnertubeValue('HL') || document.documentElement.lang || 'en';
   let gl = getInnertubeValue('GL') || 'US';
-  let params = getTranscriptParamsFromPageScripts();
+  let params = pageResponse?.videoDetails?.videoId === videoId
+    ? getTranscriptParamsFromPageScripts()
+    : '';
 
   // SPA 导航后 <script> 标签可能不包含当前视频的 params，从重新拉取的 HTML 中提取
   if (!key || !clientVersion || !params) {
@@ -569,7 +573,9 @@ async function fetchInnertubeTranscript() {
       key = key || getInnertubeValueFromHtml(html, 'INNERTUBE_API_KEY');
       clientVersion = clientVersion || getInnertubeValueFromHtml(html, 'INNERTUBE_CLIENT_VERSION');
       visitorData = visitorData || getInnertubeValueFromHtml(html, 'VISITOR_DATA');
-      params = params || getTranscriptParamsFromHtml(html);
+      if (getPlayerResponseFromHtml(html)?.videoDetails?.videoId === videoId) {
+        params = params || getTranscriptParamsFromHtml(html);
+      }
     }
   }
 
@@ -693,8 +699,15 @@ async function getTranscript() {
   }
 
   const failures = [];
-  const playerResponse = getPlayerResponseFromPageScripts() ||
-    await fetchCurrentPlayerResponse().catch(() => null);
+  const videoId = new URLSearchParams(window.location.search).get('v');
+  let playerResponse = getPlayerResponseFromPageScripts();
+  // Inline scripts retain the initial video's data after YouTube SPA navigation.
+  if (playerResponse?.videoDetails?.videoId !== videoId) {
+    playerResponse = await fetchCurrentPlayerResponse().catch(() => null);
+  }
+  if (playerResponse?.videoDetails?.videoId !== videoId) {
+    playerResponse = null;
+  }
   const tracks = getCaptionTracks(playerResponse);
   const track = transcriptHelpers.chooseCaptionTrack(tracks, {
     activeLanguageCode: getActiveCaptionLanguageCode(),

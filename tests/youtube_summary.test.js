@@ -763,3 +763,50 @@ test('YouTube transcript panel button closes an open transcript panel and ignore
   assert.equal(closeClicked, true, 'The close button should be clicked');
   assert.equal(segmentClicked, false, 'The transcript segment containing closed should NOT be clicked');
 });
+
+for (const useInnertube of [false, true]) {
+  test(`YouTube summary uses the current video's ${useInnertube ? 'Innertube params' : 'caption track'} after SPA navigation`, async (t) => {
+    const dom = new JSDOM(`
+      <html><body>
+        ${createPlayerResponseScript('previous', [{ baseUrl: 'https://example.com/previous' }])}
+        <script>var config = {"INNERTUBE_API_KEY":"test-key","INNERTUBE_CLIENT_VERSION":"test-version","getTranscriptEndpoint":{"params":"previous-params"}};</script>
+        <h1 class="ytd-watch-metadata">Current video</h1>
+        <div class="ytp-chrome-controls"><button class="ytp-subtitles-button">CC</button></div>
+      </body></html>
+    `, { runScripts: 'outside-only', url: 'https://www.youtube.com/watch?v=previous' });
+    t.after(() => dom.window.close());
+    const messages = [];
+    const requests = [];
+    dom.window.fetch = async (url, options) => {
+      requests.push(String(url));
+      if (String(url) === 'https://www.youtube.com/watch?v=current') {
+        return {
+          ok: true,
+          text: async () => createPlayerResponseScript('current', [{ baseUrl: 'https://example.com/current' }]) +
+            '<script>var data = {"getTranscriptEndpoint":{"params":"current-params"}};</script>',
+        };
+      }
+      if (String(url).includes('/get_transcript?')) {
+        const params = JSON.parse(options.body).params;
+        return { ok: true, json: async () => ({ transcriptSegmentRenderer: {
+          startMs: '1000', snippet: { simpleText: params === 'current-params' ? 'Current transcript' : 'Previous transcript' },
+        } }) };
+      }
+      return { ok: true, text: async () => useInnertube ? '' : JSON.stringify({ events: [{
+        tStartMs: 1000, segs: [{ utf8: String(url).includes('/current') ? 'Current transcript' : 'Previous transcript' }],
+      }] }) };
+    };
+    loadYoutubeSummary(dom);
+    await Promise.resolve();
+    dom.window.chrome = { runtime: { sendMessage: (message) => messages.push(message) } };
+
+    dom.window.history.pushState({}, '', '/watch?v=current');
+    dom.window.document.dispatchEvent(new dom.window.Event('yt-navigate-finish'));
+    dom.window.document.getElementById('chatgpt-web-injector-youtube-summary').click();
+    await new Promise((resolve) => { setTimeout(resolve, 20); });
+
+    assert.equal(messages[0]?.payload.transcript, '[00:01] Current transcript');
+    assert.equal(messages[0]?.payload.url, 'https://www.youtube.com/watch?v=current');
+    assert.ok(!requests.some((url) => url.startsWith('https://example.com/previous')));
+  });
+}
