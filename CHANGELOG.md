@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.1.1...chatgpt-web-injector-v0.1.2) (2026-10-20)
+
+
+### Bug Fixes
+
+* refresh YouTube transcript data after video navigation ([#75](https://github.com/shrk7x/chatgpt-web-injector/issues/75)) ([616f460](https://github.com/shrk7x/chatgpt-web-injector/commit/616f46035a587948a454679c52d351430bb7e1c5))
+
 ## [0.1.1](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.1.0...chatgpt-web-injector-v0.1.1) (2026-07-12)
 
 
