@@ -5,6 +5,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to retry publishing (leave empty to run release-please)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -12,7 +17,11 @@ permissions:
 
 jobs:
   release-please:
+    if: ${{ !inputs.release_tag }}
     runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release.outputs.release_created }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -27,9 +36,10 @@ jobs:
 
       - name: Create extension zip
         if: ${{ steps.release.outputs.release_created }}
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name }}
         run: |
-          VERSION="${{ steps.release.outputs.tag_name }}"
-          ZIP_NAME="${VERSION}.zip"
+          ZIP_NAME="${RELEASE_TAG}.zip"
           zip -r "$ZIP_NAME" \
             manifest.json \
             src/ \
@@ -43,25 +53,67 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name }}
         run: |
-          gh release upload ${{ steps.release.outputs.tag_name }} ${{ env.ZIP_PATH }}
+          gh release upload "$RELEASE_TAG" "$ZIP_PATH"
+
+  publish-store:
+    needs: release-please
+    if: ${{ !cancelled() && (needs.release-please.outputs.release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    concurrency:
+      group: chrome-web-store-publish
+      cancel-in-progress: false
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag || needs.release-please.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Test publisher and extension
+        run: |
+          npm ci
+          npm test
+
+      - name: Download the exact release package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^(chatgpt-web-injector-)?v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Expected a stable release tag such as chatgpt-web-injector-v0.1.2.' >&2
+            exit 1
+          fi
+          gh release view "$RELEASE_TAG" --json isDraft,isPrerelease,assets > "$RUNNER_TEMP/store-release.json"
+          jq -e '.isDraft == false and .isPrerelease == false' "$RUNNER_TEMP/store-release.json"
+          ASSET_NAME=$(jq -er --arg tag "${RELEASE_TAG}.zip" \
+            --arg prefixed "chatgpt-web-injector-v${RELEASE_TAG##*v}.zip" \
+            '[.assets[].name | select(. == $tag or . == $prefixed)] |
+             if length == 1 then .[0] else error("Expected exactly one extension ZIP") end' \
+            "$RUNNER_TEMP/store-release.json")
+          mkdir -p "$RUNNER_TEMP/store-release"
+          gh release download "$RELEASE_TAG" --pattern "$ASSET_NAME" --dir "$RUNNER_TEMP/store-release"
+          ZIP_PATH="$RUNNER_TEMP/store-release/$ASSET_NAME"
+          VERSION=$(unzip -p "$ZIP_PATH" manifest.json | jq -er '.version')
+          test "$VERSION" = "${RELEASE_TAG##*v}"
+          echo "ZIP_PATH=$ZIP_PATH" >> "$GITHUB_ENV"
+          echo "EXTENSION_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Publish to Chrome Web Store
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          ACCESS_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
-            -d "client_id=${{ secrets.CHROME_CLIENT_ID }}" \
-            -d "client_secret=${{ secrets.CHROME_CLIENT_SECRET }}" \
-            -d "refresh_token=${{ secrets.CHROME_REFRESH_TOKEN }}" \
-            -d "grant_type=refresh_token" | jq -r '.access_token')
-
-          curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "x-goog-api-version: 2" \
-            -X PUT \
-            -T "${{ env.ZIP_PATH }}" \
-            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CHROME_EXTENSION_ID }}"
-
-          curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "x-goog-api-version: 2" \
-            -X POST \
-            "https://www.googleapis.com/chromewebstore/v1.1/items/${{ secrets.CHROME_EXTENSION_ID }}/publish"
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+        run: node scripts/chrome_webstore.js "$ZIP_PATH" "$EXTENSION_VERSION"
