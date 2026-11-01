@@ -32,7 +32,7 @@ package.json                - Test runner only (node --test), devDependency: jsd
 
 ## Release Process
 - This project uses **release-please** to automate releases.
-- **When to release:** Merging a feature PR to `main` updates a "Release PR". Merging the Release PR triggers the full release.
+- **When to release:** Merging a feature PR to `main` updates a "Release PR". Every Monday at 09:00 America/Denver, the Release workflow refreshes that PR, tests its exact head, squash merges it and creates the release in the same run. No pending release means no new version. Failed tests or a changed head stop publication. Manual Release PR merges still trigger an early release.
 - **Changelog:** Automatically generated from commit messages (use Conventional Commits like `feat:`, `fix:`).
 - **Artifacts:** A `.zip` file of the extension is automatically generated and attached to each GitHub Release.
 - **Version Bumping:** `manifest.json` and `package.json` are automatically updated by the release workflow.

@@ -96,6 +96,19 @@ Public video content and sample templates captured in a separate, signed-out dem
 
 ## Automatic Chrome Web Store releases
 
+Every Monday at **09:00 America/Denver** (including daylight saving changes),
+the Release workflow refreshes the release-please PR. If there are pending
+releasable changes, it tests that exact PR revision, squash merges it, and creates
+a GitHub Release and ZIP in the same workflow. If no release PR is pending, it
+skips publication. Failed tests or a changed PR head stop the release. GitHub may
+delay scheduled runs; the scheduled time is not a delivery guarantee.
+
+Pushes to `main` continue to update the release PR without publishing each change.
+Unreleased changes remain queued until the next successful weekly run. Version
+numbers and changelog entries still come from Conventional Commits: `fix:` bumps
+the patch, `feat:` bumps the minor, and documentation-only changes do not normally
+create a release. You can still merge the Release PR manually for an early release.
+
 Merging the release-please Release PR creates a GitHub Release and its ZIP. The
 `publish-store` job downloads that exact ZIP, checks its version, runs the tests,
 uploads it using Chrome Web Store API v2, and submits it with `DEFAULT_PUBLISH`.
