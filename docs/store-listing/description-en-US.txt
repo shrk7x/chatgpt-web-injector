@@ -1,31 +1,3 @@
-Bring the pages you read and the videos you watch into ChatGPT—with prompts you control.
+Summarize YouTube videos with ChatGPT, view transcripts, and download available subtitles as SRT or TXT. Send selected webpage text using custom prompts, the right-click menu, or an optional floating button.
 
-ChatGPT Web Injector is a free, open-source Chrome extension for working with YouTube transcripts and selected webpage text. It opens ChatGPT in a new tab, adds the source context to your prompt, and sends it automatically when the ChatGPT interface is available.
-
-YOUTUBE TOOLS
-- Send an available video transcript to ChatGPT for summaries, key ideas, explanations, or follow-up questions.
-- Open YouTube's transcript panel from the player controls.
-- Download available subtitles as SRT or TXT files, with timestamps.
-- Customize the YouTube summary prompt using the video title, URL, and transcript.
-- Choose Temporary Chat for YouTube summaries when supported by ChatGPT.
-
-SELECTED TEXT TO CHATGPT
-- Select a passage and use the right-click "Send to ChatGPT" menu.
-- Optionally enable the floating BOT button for a quick shortcut next to your selection.
-- Create reusable prompts for tasks such as summarizing, explaining, analyzing, or translating text. Prompts can include the selected text, page title, and URL.
-- Switch between your saved templates from the extension popup.
-
-NO SEPARATE EXTENSION ACCOUNT OR API KEY
-The extension works with the ChatGPT website. ChatGPT may require sign-in, and its availability and usage limits still apply. YouTube tools depend on captions or transcripts being available for the video. If automatic insertion or sending fails, a manual copy dialog provides a fallback.
-
-PRIVACY AND CONTROL
-The extension has no developer-operated backend or analytics. Settings and prompt templates are saved using Chrome's synchronized extension storage. When you choose a send or summary action, the selected content or transcript and source context are sent to ChatGPT. ChatGPT's own data policies apply. Temporary Chat is not a promise of zero data retention.
-
-OPEN SOURCE — MIT LICENSE
-Read the source, report bugs, or suggest improvements:
-https://github.com/shrk7x/chatgpt-web-injector
-
-Support and feedback:
-https://github.com/shrk7x/chatgpt-web-injector/issues
-
-An independent community project. Not affiliated with or endorsed by OpenAI, Google, or YouTube.
+Free and open source (MIT), with no separate extension account or API key. ChatGPT's sign-in requirements and usage limits apply. Source: https://github.com/shrk7x/chatgpt-web-injector

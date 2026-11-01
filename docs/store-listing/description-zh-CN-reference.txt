@@ -1,16 +1,3 @@
-把正在阅读的网页和观看的视频带到 ChatGPT，使用你自己定义的提示词。
+用 ChatGPT 总结 YouTube 视频、查看转写文稿，并将已有字幕下载为 SRT 或 TXT。也可以通过右键菜单或可选悬浮按钮，使用自定义提示词发送选中的网页文字。
 
-ChatGPT Web Injector 是采用 MIT 许可证的免费开源 Chrome 扩展，可将 YouTube 已有字幕、转写文稿和你选中的网页文字发送到 ChatGPT。
-
-YouTube 工具：发送已有文稿到 ChatGPT、打开转写面板、下载带时间戳的 SRT 或 TXT 字幕，并自定义视频总结模板。
-
-网页文字：选中文字后，通过右键菜单或可选的悬浮 BOT 按钮发送；保存并切换用于总结、解释、分析和翻译的提示词模板。
-
-无需额外注册扩展账号，也不需要 API key。ChatGPT 可能要求登录，其服务可用性和使用限制仍然适用；视频功能依赖字幕或文稿是否可获取。自动填入或发送失败时，可使用手动复制弹窗。
-
-扩展没有开发者运营的后端或分析服务。提示词和设置使用 Chrome 扩展同步存储保存。只有在你主动操作时，相关文字、文稿和来源信息才会被发送到 ChatGPT；ChatGPT 自身的数据规则仍然适用。临时聊天不代表零数据留存。
-
-开源仓库：https://github.com/shrk7x/chatgpt-web-injector
-问题反馈：https://github.com/shrk7x/chatgpt-web-injector/issues
-
-本项目独立开发，与 OpenAI、Google、YouTube 无隶属或背书关系。
+免费开源，采用 MIT 许可证，无需额外注册扩展账号或提供 API key。ChatGPT 自身的登录要求和使用限制仍然适用。源码：https://github.com/shrk7x/chatgpt-web-injector
