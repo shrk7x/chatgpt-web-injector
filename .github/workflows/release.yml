@@ -9,6 +9,11 @@ on:
       timezone: 'America/Denver'
   workflow_dispatch:
     inputs:
+      publish_pending:
+        description: 'Run the weekly release process now (tests, merges and publishes the pending release)'
+        required: false
+        default: false
+        type: boolean
       release_tag:
         description: 'Existing release tag to retry publishing (leave empty to run release-please)'
         required: false
@@ -39,14 +44,14 @@ jobs:
           manifest-file: release-please-manifest.json
 
       - name: Checkout weekly release helpers
-        if: ${{ github.event_name == 'schedule' && steps.release.outputs.release_created != 'true' }}
+        if: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_pending)) && steps.release.outputs.release_created != 'true' }}
         uses: actions/checkout@v4
         with:
           ref: main
           persist-credentials: false
 
       - name: Find pending weekly release
-        if: ${{ github.event_name == 'schedule' && steps.release.outputs.release_created != 'true' }}
+        if: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_pending)) && steps.release.outputs.release_created != 'true' }}
         id: pending
         uses: actions/github-script@v7
         with:

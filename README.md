@@ -107,7 +107,11 @@ Pushes to `main` continue to update the release PR without publishing each chang
 Unreleased changes remain queued until the next successful weekly run. Version
 numbers and changelog entries still come from Conventional Commits: `fix:` bumps
 the patch, `feat:` bumps the minor, and documentation-only changes do not normally
-create a release. You can still merge the Release PR manually for an early release.
+create a release. For an early release or an end-to-end check, open GitHub Actions
+→ **Release** → **Run workflow** on `main`, enable **publish_pending**, and leave
+**release_tag** empty. This executes the same test, automatic merge, packaging and
+store submission steps as the weekly schedule. Without that checkbox, a manual
+run only refreshes release-please. You can also merge the Release PR manually.
 
 Merging the release-please Release PR creates a GitHub Release and its ZIP. The
 `publish-store` job downloads that exact ZIP, checks its version, runs the tests,
