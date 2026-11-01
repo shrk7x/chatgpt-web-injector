@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.1.1...chatgpt-web-injector-v0.2.0) (2026-11-01)
+
+
+### Features
+
+* add Gemini as a selectable web target ([#81](https://github.com/shrk7x/chatgpt-web-injector/issues/81)) ([48f2d37](https://github.com/shrk7x/chatgpt-web-injector/commit/48f2d373dad77a3c298e2c69d7220a232a082010))
+
+
+### Bug Fixes
+
+* allow immediate runs of weekly release ([#83](https://github.com/shrk7x/chatgpt-web-injector/issues/83)) ([99f80c0](https://github.com/shrk7x/chatgpt-web-injector/commit/99f80c0b4b4b9e2cf722d41a95b465fc8e7277a2))
+* automate Chrome Web Store publishing with API v2 ([#77](https://github.com/shrk7x/chatgpt-web-injector/issues/77)) ([3e4f54a](https://github.com/shrk7x/chatgpt-web-injector/commit/3e4f54aaf72c126cfa2b30d786a0e1c68429935a))
+* publish pending releases weekly ([#82](https://github.com/shrk7x/chatgpt-web-injector/issues/82)) ([ff1aa39](https://github.com/shrk7x/chatgpt-web-injector/commit/ff1aa39cdbfcc583fb4a2c4fd48be4e7859e1006))
+* refresh YouTube transcript data after video navigation ([#75](https://github.com/shrk7x/chatgpt-web-injector/issues/75)) ([616f460](https://github.com/shrk7x/chatgpt-web-injector/commit/616f46035a587948a454679c52d351430bb7e1c5))
+
 ## [0.1.1](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.1.0...chatgpt-web-injector-v0.1.1) (2026-07-12)
 
 
