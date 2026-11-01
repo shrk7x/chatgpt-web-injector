@@ -189,3 +189,9 @@ fails, Options opens with the full prompt and a Copy button; pending prompts are
 also available by opening Options later. Recovery prompts stay in local extension
 storage (never sync storage or URLs) until a confirmed send or **Delete saved
 prompt**. Reload the extension and refresh existing tabs after updating.
+
+If local recovery storage is unavailable, automatic sending pauses and a manual
+copy dialog opens in the assistant tab. If that tab cannot be opened or injected,
+the extension toolbar shows an error badge and a title explaining that the source
+text must be selected again. A cleanup failure after a confirmed send never
+triggers another submission or an unconfirmed-send recovery tab.

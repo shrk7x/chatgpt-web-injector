@@ -298,13 +298,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
 async function showPendingPrompts() {
   const data = await chrome.storage.local.get(null);
   for (const [key, value] of Object.entries(data)) {
-    if (!key.startsWith('pendingPrompt_') || typeof value?.prompt !== 'string') continue;
+    if (!key.startsWith('pendingPrompt_') || (typeof value?.prompt !== 'string' && value?.submitted !== true)) continue;
     const panel = document.createElement('section');
     panel.className = 'settings-section';
     const title = document.createElement('h2');
-    title.textContent = `Recover ${value.provider === 'gemini' ? 'Gemini' : 'ChatGPT'} prompt`;
+    title.textContent = value.submitted ? 'Prompt already submitted' : `Recover ${value.provider === 'gemini' ? 'Gemini' : 'ChatGPT'} prompt`;
     const hint = document.createElement('p');
-    hint.textContent = 'Automatic send could not be confirmed. Check the conversation before sending again to avoid duplicates. Copy the full prompt below if needed.';
+    hint.textContent = value.submitted ? 'Your message was sent successfully. This saved recovery record can be deleted; do not resend the prompt.' : 'Automatic send could not be confirmed. Check the conversation before sending again to avoid duplicates. Copy the full prompt below if needed.';
     const text = document.createElement('textarea');
     text.value = value.prompt;
     text.readOnly = true;
@@ -322,7 +322,9 @@ async function showPendingPrompts() {
       try { await chrome.storage.local.remove(key); panel.remove(); }
       catch (_error) { setStatus('Could not delete saved prompt. Please try again.'); }
     });
-    panel.append(title, hint, text, copy, dismiss);
+    panel.append(title, hint);
+    if (!value.submitted) panel.append(text, copy);
+    panel.append(dismiss);
     document.querySelector('main').prepend(panel);
   }
 }

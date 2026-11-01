@@ -5,6 +5,7 @@ const listeners = {};
 const previousChrome = globalThis.chrome;
 
 globalThis.chrome = {
+  action: { async setBadgeText() {}, async setTitle() {} },
   contextMenus: {
     onClicked: { addListener(fn) { listeners.context = fn; } },
     create() {},
@@ -145,3 +146,64 @@ for (const failure of ['navigation', 'injection', 'unconfirmed']) {
     assert.equal(calls[1].url.includes(prompt), false);
   });
 }
+
+test('initial recovery storage failure shows full copy prompt without attempting submission', async () => {
+  const { sendPrompt } = await import('../src/service_worker.js');
+  const injections = [];
+  chrome.storage.sync = { async get() { return { targetProvider: 'gemini' }; } };
+  chrome.storage.local = { async set() { throw new Error('quota'); } };
+  chrome.tabs.create = async () => ({ id: 123 });
+  chrome.scripting.executeScript = async (details) => { injections.push(details); return []; };
+  await sendPrompt('full\n提示 😀');
+  assert.equal(injections.length, 1);
+  assert.equal(injections[0].func.name, 'showPromptNotice');
+  assert.equal(injections[0].args[0], 'full\n提示 😀');
+});
+
+test('confirmed submission cleanup failure does not open unconfirmed recovery', async () => {
+  const { sendPrompt } = await import('../src/service_worker.js');
+  const calls = [];
+  const records = {};
+  chrome.storage.sync = { async get() { return { targetProvider: 'gemini' }; } };
+  chrome.storage.local = {
+    async set(values) { Object.assign(records, values); },
+    async remove() { throw new Error('cleanup unavailable'); },
+  };
+  chrome.tabs.create = async (properties) => { calls.push(properties); return { id: 123 }; };
+  chrome.scripting.executeScript = async () => [{ result: { ok: true } }];
+  await sendPrompt('already submitted');
+  assert.equal(calls.length, 1);
+  assert.equal(Object.values(records)[0].submitted, true);
+  assert.equal(Object.values(records)[0].prompt, undefined);
+});
+
+test('unavailable storage and page fallback produce visible toolbar error', async () => {
+  const { sendPrompt } = await import('../src/service_worker.js');
+  const status = {};
+  chrome.storage.sync = { async get() { return { targetProvider: 'gemini' }; } };
+  chrome.storage.local = { async set() { throw new Error('storage unavailable'); } };
+  chrome.tabs.create = async () => { throw new Error('tabs unavailable'); };
+  chrome.action = {
+    async setBadgeText(value) { status.badge = value.text; },
+    async setTitle(value) { status.title = value.title; },
+  };
+  await sendPrompt('unrecoverable prompt');
+  assert.equal(status.badge, '!');
+  assert.match(status.title, /could not be saved or displayed/);
+});
+
+test('successful later send clears stale toolbar failure status', async () => {
+  const { sendPrompt } = await import('../src/service_worker.js');
+  const status = { badge: '!', title: 'Send failed' };
+  chrome.action = {
+    async setBadgeText(value) { status.badge = value.text; },
+    async setTitle(value) { status.title = value.title; },
+  };
+  chrome.storage.sync = { async get() { return { targetProvider: 'gemini' }; } };
+  chrome.storage.local = { async set() {}, async remove() {} };
+  chrome.tabs.create = async () => ({ id: 123 });
+  chrome.scripting.executeScript = async () => [{ result: { ok: true } }];
+  await sendPrompt('new successful prompt');
+  assert.equal(status.badge, '');
+  assert.equal(status.title, 'ChatGPT Web Injector');
+});
