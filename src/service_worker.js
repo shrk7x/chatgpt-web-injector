@@ -1,5 +1,7 @@
+import { runGeminiSendFlow } from './gemini_content.js';
 import { runChatgptSendFlow } from './chatgpt_content.js';
 import {
+  loadTargetProvider,
   loadTemplates,
   loadTemplateById,
   loadYoutubeSummaryTemporaryChatEnabled,
@@ -114,7 +116,7 @@ async function sendWithTemplate(templateId, selectionText, tab) {
 
   const template = await loadTemplateById(templateId);
   const prompt = renderTemplate(template, payload);
-  await sendPromptToChatgpt(prompt);
+  await sendPrompt(prompt);
 }
 
 async function safeTabsCreate(createProperties, maxAttempts = 3, delayMs = 150) {
@@ -132,18 +134,130 @@ async function safeTabsCreate(createProperties, maxAttempts = 3, delayMs = 150) 
   }
 }
 
-async function sendPromptToChatgpt(prompt, options = {}) {
-  const targetUrl = getChatgptTargetUrl(options.preferTemporaryChat === true);
-  const targetTab = await safeTabsCreate({ url: targetUrl, active: true });
-  await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
+/**
+ * Show an in-page notice, optionally with a full prompt copy control.
+ * Self-contained for scripting.executeScript.
+ * @param {string|null} prompt
+ * @param {string} message
+ * @returns {void}
+ */
+export function showPromptNotice(prompt, message) {
+  document.getElementById('chatgpt-web-injector-recovery')?.remove();
+  const panel = document.createElement('dialog');
+  panel.id = 'chatgpt-web-injector-recovery';
+  panel.style.cssText = 'position:fixed;max-width:90vw;width:720px;z-index:2147483647;padding:24px;';
+  const hint = document.createElement('p');
+  hint.textContent = message;
+  panel.append(hint);
+  if (typeof prompt === 'string') {
+    const text = document.createElement('textarea');
+    text.value = prompt;
+    text.readOnly = true;
+    text.rows = 12;
+    text.style.width = '100%';
+    text.setAttribute('aria-label', 'Full pending prompt');
+    const copy = document.createElement('button');
+    copy.textContent = 'Copy full prompt';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(text.value); }
+      catch (_error) { text.select(); document.execCommand('copy'); }
+    });
+    panel.append(text, copy);
+  }
+  const close = document.createElement('button');
+  close.textContent = 'Close';
+  close.addEventListener('click', () => panel.remove());
+  panel.append(close);
+  document.body.append(panel);
+  panel.showModal();
+}
 
-  const result = await executeChatgptSendFlow(targetTab.id, prompt, {
-    maxAttempts: 24,
-    intervalMs: 250,
-    preferTemporaryChat: options.preferTemporaryChat === true,
-  });
+async function showVisibleSendError(message) {
+  await Promise.allSettled([
+    chrome.action.setBadgeText({ text: '!' }),
+    chrome.action.setTitle({ title: message }),
+  ]);
+}
 
-  console.log('[ChatGPT Web Injector] Runtime send result:', result);
+/**
+ * Send a rendered prompt to the selected web assistant with recovery.
+ * @param {string} prompt
+ * @param {{preferTemporaryChat?: boolean}} options
+ * @returns {Promise<void>}
+ */
+export async function sendPrompt(prompt, options = {}) {
+  const provider = await loadTargetProvider();
+  const targetUrl = provider === 'gemini' ? 'https://gemini.google.com/app'
+    : getChatgptTargetUrl(options.preferTemporaryChat === true);
+  const recoveryId = `pendingPrompt_${crypto.randomUUID()}`;
+  // Retain the full prompt before navigation, including when injection is denied.
+  try {
+    await chrome.storage.local.set({ [recoveryId]: { prompt, provider } });
+  } catch (_error) {
+    try {
+      const tab = await safeTabsCreate({ url: targetUrl, active: true });
+      await waitForTabComplete(tab.id, TAB_WAIT_TIMEOUT_MS);
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id }, func: showPromptNotice,
+        args: [prompt, 'Prompt recovery storage is unavailable. Nothing was sent automatically. Copy the full prompt before closing this tab.'],
+      });
+    } catch (_fallbackError) {
+      await showVisibleSendError('Send failed: prompt could not be saved or displayed. Please reselect the source text and try again.');
+    }
+    return;
+  }
+  let targetTab;
+  try {
+    targetTab = await safeTabsCreate({ url: targetUrl, active: true });
+    await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
+    let result;
+    if (provider === 'gemini') {
+      const [execution] = await chrome.scripting.executeScript({
+        target: { tabId: targetTab.id },
+        func: runGeminiSendFlow,
+        args: [prompt],
+      });
+      result = execution?.result;
+    } else {
+      result = await executeChatgptSendFlow(targetTab.id, prompt, {
+        maxAttempts: 24,
+        intervalMs: 250,
+        preferTemporaryChat: options.preferTemporaryChat === true,
+      });
+    }
+    if (!result?.ok) {
+      throw new Error(result?.reason || 'send_unconfirmed');
+    }
+  } catch (error) {
+    console.warn('[ChatGPT Web Injector] Send unconfirmed; opening prompt recovery:', error);
+    await safeTabsCreate({
+      url: chrome.runtime.getURL(`options/options.html#${recoveryId}`), active: true,
+    });
+    return;
+  }
+  // Submission is already confirmed. Cleanup must never turn it into a send failure.
+  try {
+    await chrome.storage.local.remove(recoveryId);
+    await Promise.allSettled([
+      chrome.action.setBadgeText({ text: '' }),
+      chrome.action.setTitle({ title: 'ChatGPT Web Injector' }),
+    ]);
+  } catch (_cleanupError) {
+    try {
+      // Replacing the full prompt also frees quota and prevents stale retry advice.
+      await chrome.storage.local.set({ [recoveryId]: { provider, submitted: true } });
+    } catch (_markError) {
+      await showVisibleSendError('Message sent successfully. Saved prompt cleanup failed; do not resend it.');
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: targetTab.id }, func: showPromptNotice,
+          args: [null, 'Message sent successfully. Saved prompt cleanup failed; do not resend it.'],
+        });
+      } catch (_noticeError) {
+        // The toolbar badge and title retain the confirmed status after navigation.
+      }
+    }
+  }
 }
 
 async function sendYoutubeSummary(payload) {
@@ -155,27 +269,29 @@ async function sendYoutubeSummary(payload) {
     transcript: payload?.transcript || '',
   });
 
-  await sendPromptToChatgpt(prompt, { preferTemporaryChat });
+  await sendPrompt(prompt, { preferTemporaryChat });
 }
 
 async function rebuildContextMenuOnce() {
   await new Promise((resolve) => chrome.contextMenus.removeAll(resolve));
 
   const { templates, activeTemplateId } = await loadTemplates();
+  const provider = await loadTargetProvider();
+  const menuTitle = provider === 'gemini' ? 'Send to Gemini' : 'Send to ChatGPT';
 
   if (templates.length <= 1) {
     // Single template (or empty due to storage corruption): simple top-level item
     const itemId = templates[0]?.id ?? activeTemplateId ?? 'default';
     chrome.contextMenus.create({
       id: `${MENU_ITEM_PREFIX}${itemId}`,
-      title: 'Send to ChatGPT',
+      title: menuTitle,
       contexts: ['selection', 'page'],
     });
   } else {
     // Multiple templates: parent + submenu
     chrome.contextMenus.create({
       id: MENU_ID,
-      title: 'Send to ChatGPT',
+      title: menuTitle,
       contexts: ['selection', 'page'],
     });
 
@@ -219,7 +335,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Rebuild menu when storage changes (e.g. templates edited in Options)
 chrome.storage.onChanged.addListener((changes) => {
-  if ('templates' in changes || 'activeTemplateId' in changes) {
+  if ('templates' in changes || 'activeTemplateId' in changes || 'targetProvider' in changes) {
     rebuildContextMenu().catch((err) => {
       console.error('[ChatGPT Web Injector] Context menu rebuild failed:', err);
     });

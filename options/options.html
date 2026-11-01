@@ -9,6 +9,17 @@
   <body>
     <main class="container">
       <h1>ChatGPT Web Injector</h1>
+
+      <div class="target-setting">
+        <label for="target-provider">AI assistant</label>
+        <select id="target-provider" aria-describedby="target-help">
+          <option value="chatgpt">ChatGPT</option>
+          <option value="gemini">Gemini</option>
+        </select>
+        <p id="target-help">Applies to selections, context menu, and YouTube summaries.</p>
+        <p id="target-status" role="status" aria-live="polite"></p>
+      </div>
+
       <p class="subtitle">Customize your prompt templates and behavior below.</p>
 
       <!-- Section 1: YouTube Summary Template (置顶) -->

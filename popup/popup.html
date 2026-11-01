@@ -9,6 +9,17 @@
   <body>
     <div class="container">
       <h1>Templates</h1>
+
+      <div class="target-setting">
+        <label for="target-provider">AI assistant</label>
+        <select id="target-provider" aria-describedby="target-help">
+          <option value="chatgpt">ChatGPT</option>
+          <option value="gemini">Gemini</option>
+        </select>
+        <p id="target-help">Applies to selections, context menu, and YouTube summaries.</p>
+        <p id="target-status" role="status" aria-live="polite"></p>
+      </div>
+
       <ul id="template-list" class="template-list" role="listbox" aria-label="Templates"></ul>
       <div class="settings-section">
         <div class="setting-row">

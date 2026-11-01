@@ -239,3 +239,9 @@ h1 {
 .manage-link:hover::after {
   transform: translateX(2px);
 }
+
+.target-setting { margin: 16px 0; }
+.target-setting label { display: block; margin-bottom: 8px; }
+.target-setting select { width: 100%; padding: 8px; font: inherit; }
+.target-setting p { font-size: 12px; line-height: 1.5; }
+input:disabled { cursor: not-allowed; }
