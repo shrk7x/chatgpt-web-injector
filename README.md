@@ -100,8 +100,9 @@ Every Monday at **09:00 America/Denver** (including daylight saving changes),
 the Release workflow refreshes the release-please PR. If there are pending
 releasable changes, it tests that exact PR revision, squash merges it, and creates
 a GitHub Release and ZIP in the same workflow. If no release PR is pending, it
-skips publication. Failed tests or a changed PR head stop the release. GitHub may
-delay scheduled runs; the scheduled time is not a delivery guarantee.
+creates no new version, but still checks the latest existing release for store
+delivery. Failed tests or a changed PR head stop the release. GitHub may delay
+scheduled runs; the scheduled time is not a delivery guarantee.
 
 Pushes to `main` continue to update the release PR without publishing each change.
 Unreleased changes remain queued until the next successful weekly run. Version
@@ -164,8 +165,17 @@ existing tag in `release_tag` (for example `chatgpt-web-injector-v0.1.1`; legacy
 `v0.0.18` tags also work). This retries only store publishing without creating a
 new version. Leaving the field empty runs release-please as before.
 
+Every weekly run checks store delivery even when no new Release PR exists. It
+uses the newly created release if any, otherwise the latest stable GitHub release,
+and downloads its existing ZIP without changing the version. If newer releases
+accumulate while Google reviews an older version, the next run targets the latest
+release rather than submitting obsolete intermediate versions.
+
 The workflow serializes store submissions. It skips a version already published
-or awaiting review, and stops if another version is awaiting review or staged.
+or awaiting review. If another version is awaiting review, the job reports
+**DEFERRED** successfully without uploading, submitting or cancelling that review;
+the next weekly run checks again. Once the old review clears, it submits the
+latest release. A staged submission still stops the job for manual resolution.
 Authentication failures, HTTP errors, failed/timed-out uploads, and unexpected
 submission states fail the job. Inspect Actions and the Developer Dashboard,
 resolve the problem, then dispatch again. For a Google review rejection, fix the

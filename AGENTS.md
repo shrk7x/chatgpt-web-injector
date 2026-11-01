@@ -38,6 +38,7 @@ package.json                - Test runner only (node --test), devDependency: jsd
 - **Version Bumping:** `manifest.json` and `package.json` are automatically updated by the release workflow.
 - **Store Publish:** The Release workflow uploads the exact release ZIP through Chrome Web Store API v2 and submits it for automatic publication after Google review. Uses keyless GitHub OIDC and a dedicated service account; requires the Variables documented in README.
 - **Run now:** Dispatch Release on `main` with `publish_pending: true` and no `release_tag` to run the full weekly process immediately. This can create a real release and store submission.
+- **Weekly store retry:** Every weekly run checks the latest stable GitHub release even without a new Release PR. Another version awaiting review yields `DEFERRED` without uploading or cancelling; the next weekly run retries. Already published or matching pending versions are skipped. No version bump is needed for a retry.
 - **Retry:** Dispatch Release with `release_tag` set to an existing stable tag; no version bump is required. A successful submission is not proof of store approval or browser delivery.
 
 ## Manual Verification Checklist

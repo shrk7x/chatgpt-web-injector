@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { findReleasePullRequest, mergeReleasePullRequest } from '../scripts/weekly_release.js';
+import { findReleasePullRequest, mergeReleasePullRequest, getStoreReleaseTag } from '../scripts/weekly_release.js';
 
 const context = { repo: { owner: 'owner', repo: 'extension' } };
 const pending = {
@@ -72,4 +72,42 @@ test('a changed head or API failure stops publication', async () => {
     context, number: 76, sha: 'tested-head',
     github: { rest: { pulls: { merge: async () => { throw new Error('SHA mismatch'); } } } }
   }), /SHA mismatch/);
+});
+
+test('an empty release week retries the latest existing stable release tag', async () => {
+  let request;
+  const tag = await getStoreReleaseTag({
+    context,
+    github: { rest: { repos: { getLatestRelease: async (input) => {
+      request = input;
+      return { data: { tag_name: 'chatgpt-web-injector-v0.2.0' } };
+    } } } }
+  });
+  assert.equal(tag, 'chatgpt-web-injector-v0.2.0');
+  assert.deepEqual(request, context.repo);
+});
+
+test('a newly created or explicitly requested release takes priority', async () => {
+  assert.equal(await getStoreReleaseTag({
+    context, github: {}, releaseTag: 'chatgpt-web-injector-v0.3.0'
+  }), 'chatgpt-web-injector-v0.3.0');
+});
+
+test('a repository without any release skips store delivery', async () => {
+  const tag = await getStoreReleaseTag({
+    context,
+    github: { rest: { repos: { getLatestRelease: async () => {
+      throw Object.assign(new Error('Not Found'), { status: 404 });
+    } } } }
+  });
+  assert.equal(tag, null);
+});
+
+test('release lookup failures are not mistaken for an empty week', async () => {
+  await assert.rejects(getStoreReleaseTag({
+    context,
+    github: { rest: { repos: { getLatestRelease: async () => {
+      throw Object.assign(new Error('Unauthorized'), { status: 401 });
+    } } } }
+  }), /Unauthorized/);
 });
