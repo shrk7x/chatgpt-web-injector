@@ -1,10 +1,12 @@
 # ChatGPT Web Injector
 
-![Version](https://img.shields.io/badge/version-0.0.18-blue)
+![Version](https://img.shields.io/github/v/release/shrk7x/chatgpt-web-injector)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4)
 
-A Chrome extension that brings AI tooling directly into your browser — from YouTube video summaries to quick ChatGPT prompts.
+A free, MIT-licensed Chrome extension for YouTube transcripts, subtitle downloads, and reusable ChatGPT prompts.
+
+[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/clkggcckiepbgbjlgboapakmipmbgojk) · [Source code](https://github.com/shrk7x/chatgpt-web-injector) · [Report an issue](https://github.com/shrk7x/chatgpt-web-injector/issues)
 
 ---
 
@@ -18,8 +20,8 @@ Injected controls appear next to the YouTube player's CC button — no extra cli
 - **Transcript Panel**: Toggles the native YouTube transcript sidebar.
 - **Download Subtitles**: Choose your format from a popover:
   - **SRT** — precise SubRip format with millisecond timestamps (`00:00:12,345`), sorted chronologically. Good for subtitle editors or archiving.
-  - **TXT** — timestamps stripped, clean plain text. Ideal for pasting directly into LLMs.
-- Buttons auto-hide when a video has no captions (live streams, uncaptioned uploads), so there's never UI clutter.
+  - **TXT** — readable plain text with timestamps. Useful for notes or prompts.
+- Transcript tools depend on caption availability. Controls hide when the extension can determine that captions are unavailable.
 - Handles YouTube's single-page navigation — no stale buttons or race conditions when switching between videos.
 
 ### 📋 Prompt Templates
@@ -56,9 +58,19 @@ Please provide:
 Two ways to trigger:
 
 - **Right-click** any selected text → **Send to ChatGPT**
-- **Hover button** (BOT): appears near your cursor when you select text on any page
+- **Floating button** (BOT): optionally enable it in Options to show a shortcut near your selected text
 
 Both open ChatGPT in a new tab, inject the composed prompt, and auto-send. If injection fails, a manual copy modal appears as a fallback.
+
+---
+
+## Screenshots
+
+Public video content and sample templates captured in a separate, signed-out demo environment.
+
+![YouTube player controls and subtitle export](docs/store-listing/screenshots/02-subtitle-download.png)
+
+![Reusable prompt templates](docs/store-listing/screenshots/04-selection-templates.png)
 
 ---
 
@@ -75,8 +87,10 @@ Both open ChatGPT in a new tab, inject the composed prompt, and auto-send. If in
 ## Privacy
 
 - No backend, no API key, no analytics
-- Settings stored locally via `chrome.storage.sync`
-- Nothing leaves your browser except what you send to ChatGPT
+- Settings and templates saved through Chrome synchronized extension storage (`chrome.storage.sync`)
+- Selected text, transcripts, and source context are sent to ChatGPT when you initiate a send or summary action
+- No separate extension account or API key; ChatGPT sign-in requirements and usage limits still apply
+- Temporary Chat is optional and follows ChatGPT's own data policies
 
 ---
 
