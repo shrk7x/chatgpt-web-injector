@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatGPT Web Injector",
-  "description": "Send selected webpage content to ChatGPT with reusable prompt templates.",
+  "description": "Summarize YouTube videos, export subtitles, and send selected text to ChatGPT with custom prompts. Open source.",
   "version": "0.1.1",
   "permissions": [
     "contextMenus",
