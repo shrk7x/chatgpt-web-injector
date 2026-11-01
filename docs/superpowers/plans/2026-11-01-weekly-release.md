@@ -20,4 +20,4 @@ manual release and store retry. No direct publication while implementing this PR
       tests and same-run release creation. Use the release tag for ZIP checkout.
 - [x] Update README and AGENTS release instructions.
 - [x] Run syntax checks, full tests, workflow validation and review the diff.
-- [ ] Commit, push and open a focused PR for activation.
+- [x] Commit, push and open a focused PR for activation.

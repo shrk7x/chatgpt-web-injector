@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.weekly_release.outputs.tag_name || steps.release.outputs.tag_name }}
-      release_created: ${{ steps.weekly_release.outputs.release_created || steps.release.outputs.release_created }}
+      release_created: ${{ steps.weekly_release.outputs.release_created == 'true' || steps.release.outputs.release_created == 'true' }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -39,14 +39,14 @@ jobs:
           manifest-file: release-please-manifest.json
 
       - name: Checkout weekly release helpers
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'schedule' && steps.release.outputs.release_created != 'true' }}
         uses: actions/checkout@v4
         with:
           ref: main
           persist-credentials: false
 
       - name: Find pending weekly release
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'schedule' && steps.release.outputs.release_created != 'true' }}
         id: pending
         uses: actions/github-script@v7
         with:
@@ -104,14 +104,14 @@ jobs:
           manifest-file: release-please-manifest.json
 
       - name: Checkout code
-        if: ${{ steps.weekly_release.outputs.release_created || steps.release.outputs.release_created }}
+        if: ${{ steps.weekly_release.outputs.release_created == 'true' || steps.release.outputs.release_created == 'true' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.weekly_release.outputs.tag_name || steps.release.outputs.tag_name }}
           persist-credentials: false
 
       - name: Create extension zip
-        if: ${{ steps.weekly_release.outputs.release_created || steps.release.outputs.release_created }}
+        if: ${{ steps.weekly_release.outputs.release_created == 'true' || steps.release.outputs.release_created == 'true' }}
         env:
           RELEASE_TAG: ${{ steps.weekly_release.outputs.tag_name || steps.release.outputs.tag_name }}
         run: |
@@ -126,7 +126,7 @@ jobs:
           echo "ZIP_PATH=$ZIP_NAME" >> $GITHUB_ENV
 
       - name: Upload Release Asset
-        if: ${{ steps.weekly_release.outputs.release_created || steps.release.outputs.release_created }}
+        if: ${{ steps.weekly_release.outputs.release_created == 'true' || steps.release.outputs.release_created == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.weekly_release.outputs.tag_name || steps.release.outputs.tag_name }}
