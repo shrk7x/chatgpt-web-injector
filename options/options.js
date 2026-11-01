@@ -1,5 +1,7 @@
 import { DEFAULT_TEMPLATE } from '../src/template.js';
 import {
+  loadTargetProvider,
+  saveTargetProvider,
   loadTemplates,
   loadYoutubeSummaryTemporaryChatEnabled,
   loadYoutubeSummaryTemplate,
@@ -255,3 +257,73 @@ init().catch((err) => {
   console.error('[ChatGPT Web Injector] Load options failed:', err);
   setStatus('Failed to load templates.');
 });
+
+const targetSelect = document.getElementById('target-provider');
+const targetStatus = document.getElementById('target-status');
+let savedTarget = 'chatgpt';
+function renderTarget(provider) {
+  savedTarget = provider === 'gemini' ? 'gemini' : 'chatgpt';
+  targetSelect.value = savedTarget;
+  youtubeTemporaryChatInput.disabled = savedTarget === 'gemini';
+  youtubeTemporaryChatInput.title = 'Temporary Chat applies only to ChatGPT YouTube summaries.';
+  targetStatus.textContent = savedTarget === 'gemini'
+    ? 'Gemini selected. Temporary Chat is available only in ChatGPT.' : '';
+}
+loadTargetProvider().then(renderTarget).catch(() => {
+  targetStatus.textContent = 'Could not load assistant setting. Please reopen this page.';
+  targetSelect.disabled = true;
+});
+targetSelect.addEventListener('change', async () => {
+  const nextTarget = targetSelect.value;
+  targetSelect.disabled = true;
+  try {
+    await saveTargetProvider(nextTarget);
+    renderTarget(nextTarget);
+  } catch (_error) {
+    targetSelect.value = savedTarget;
+    targetStatus.textContent = 'Could not save assistant. Please try again.';
+  } finally {
+    targetSelect.disabled = false;
+  }
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'sync') return;
+  if (changes.targetProvider) renderTarget(changes.targetProvider.newValue);
+  if (changes.youtubeSummaryTemporaryChatEnabled) {
+    youtubeTemporaryChatInput.checked = changes.youtubeSummaryTemporaryChatEnabled.newValue !== false;
+  }
+});
+
+// Recovery stays local to this browser, never in a page URL or sync storage.
+async function showPendingPrompts() {
+  const data = await chrome.storage.local.get(null);
+  for (const [key, value] of Object.entries(data)) {
+    if (!key.startsWith('pendingPrompt_') || typeof value?.prompt !== 'string') continue;
+    const panel = document.createElement('section');
+    panel.className = 'settings-section';
+    const title = document.createElement('h2');
+    title.textContent = `Recover ${value.provider === 'gemini' ? 'Gemini' : 'ChatGPT'} prompt`;
+    const hint = document.createElement('p');
+    hint.textContent = 'Automatic send could not be confirmed. Check the conversation before sending again to avoid duplicates. Copy the full prompt below if needed.';
+    const text = document.createElement('textarea');
+    text.value = value.prompt;
+    text.readOnly = true;
+    text.rows = 12;
+    text.setAttribute('aria-label', 'Full pending prompt');
+    const copy = document.createElement('button');
+    copy.textContent = 'Copy full prompt';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(text.value); }
+      catch (_error) { text.select(); document.execCommand('copy'); }
+    });
+    const dismiss = document.createElement('button');
+    dismiss.textContent = 'Delete saved prompt';
+    dismiss.addEventListener('click', async () => {
+      try { await chrome.storage.local.remove(key); panel.remove(); }
+      catch (_error) { setStatus('Could not delete saved prompt. Please try again.'); }
+    });
+    panel.append(title, hint, text, copy, dismiss);
+    document.querySelector('main').prepend(panel);
+  }
+}
+showPendingPrompts().catch(() => setStatus('Could not load pending prompts. Please reopen options.'));

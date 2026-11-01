@@ -771,7 +771,7 @@ async function sendYoutubeSummary() {
       return;
     }
 
-    showStatus('Sent to ChatGPT');
+    showStatus('Opening AI assistant…');
   } catch (error) {
     console.warn('[ChatGPT Web Injector] YouTube summary failed:', error);
     showStatus('No readable captions');
@@ -784,8 +784,8 @@ function createButton() {
   const button = document.createElement('button');
   button.id = YOUTUBE_SUMMARY_BUTTON_ID;
   button.type = 'button';
-  button.title = 'Summarize with ChatGPT';
-  button.setAttribute('aria-label', 'Summarize with ChatGPT');
+  button.title = 'Summarize with AI assistant';
+  button.setAttribute('aria-label', 'Summarize with AI assistant');
   button.innerHTML = `<span style="margin-right: 4px;">AI</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
   button.addEventListener('click', (event) => {
     event.preventDefault();

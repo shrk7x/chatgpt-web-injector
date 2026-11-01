@@ -150,3 +150,17 @@ export async function saveSelectionTooltipEnabled(enabled) {
   }
 }
 
+
+/** @returns {Promise<'chatgpt'|'gemini'>} */
+export async function loadTargetProvider() {
+  const data = await chrome.storage.sync.get(['targetProvider']);
+  return data.targetProvider === 'gemini' ? 'gemini' : 'chatgpt';
+}
+
+/** @param {'chatgpt'|'gemini'} provider @returns {Promise<void>} */
+export async function saveTargetProvider(provider) {
+  if (!['chatgpt', 'gemini'].includes(provider)) {
+    throw new Error('Invalid target provider');
+  }
+  await chrome.storage.sync.set({ targetProvider: provider });
+}

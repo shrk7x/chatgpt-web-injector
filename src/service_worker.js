@@ -1,5 +1,7 @@
+import { runGeminiSendFlow } from './gemini_content.js';
 import { runChatgptSendFlow } from './chatgpt_content.js';
 import {
+  loadTargetProvider,
   loadTemplates,
   loadTemplateById,
   loadYoutubeSummaryTemporaryChatEnabled,
@@ -114,7 +116,7 @@ async function sendWithTemplate(templateId, selectionText, tab) {
 
   const template = await loadTemplateById(templateId);
   const prompt = renderTemplate(template, payload);
-  await sendPromptToChatgpt(prompt);
+  await sendPrompt(prompt);
 }
 
 async function safeTabsCreate(createProperties, maxAttempts = 3, delayMs = 150) {
@@ -132,18 +134,41 @@ async function safeTabsCreate(createProperties, maxAttempts = 3, delayMs = 150) 
   }
 }
 
-async function sendPromptToChatgpt(prompt, options = {}) {
-  const targetUrl = getChatgptTargetUrl(options.preferTemporaryChat === true);
-  const targetTab = await safeTabsCreate({ url: targetUrl, active: true });
-  await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
-
-  const result = await executeChatgptSendFlow(targetTab.id, prompt, {
-    maxAttempts: 24,
-    intervalMs: 250,
-    preferTemporaryChat: options.preferTemporaryChat === true,
-  });
-
-  console.log('[ChatGPT Web Injector] Runtime send result:', result);
+export async function sendPrompt(prompt, options = {}) {
+  const provider = await loadTargetProvider();
+  const targetUrl = provider === 'gemini' ? 'https://gemini.google.com/app'
+    : getChatgptTargetUrl(options.preferTemporaryChat === true);
+  const recoveryId = `pendingPrompt_${crypto.randomUUID()}`;
+  // Retain the full prompt before navigation, including when injection is denied.
+  await chrome.storage.local.set({ [recoveryId]: { prompt, provider } });
+  try {
+    const targetTab = await safeTabsCreate({ url: targetUrl, active: true });
+    await waitForTabComplete(targetTab.id, TAB_WAIT_TIMEOUT_MS);
+    let result;
+    if (provider === 'gemini') {
+      const [execution] = await chrome.scripting.executeScript({
+        target: { tabId: targetTab.id },
+        func: runGeminiSendFlow,
+        args: [prompt],
+      });
+      result = execution?.result;
+    } else {
+      result = await executeChatgptSendFlow(targetTab.id, prompt, {
+        maxAttempts: 24,
+        intervalMs: 250,
+        preferTemporaryChat: options.preferTemporaryChat === true,
+      });
+    }
+    if (!result?.ok) {
+      throw new Error(result?.reason || 'send_unconfirmed');
+    }
+    await chrome.storage.local.remove(recoveryId);
+  } catch (error) {
+    console.warn('[ChatGPT Web Injector] Send unconfirmed; opening prompt recovery:', error);
+    await safeTabsCreate({
+      url: chrome.runtime.getURL(`options/options.html#${recoveryId}`), active: true,
+    });
+  }
 }
 
 async function sendYoutubeSummary(payload) {
@@ -155,27 +180,29 @@ async function sendYoutubeSummary(payload) {
     transcript: payload?.transcript || '',
   });
 
-  await sendPromptToChatgpt(prompt, { preferTemporaryChat });
+  await sendPrompt(prompt, { preferTemporaryChat });
 }
 
 async function rebuildContextMenuOnce() {
   await new Promise((resolve) => chrome.contextMenus.removeAll(resolve));
 
   const { templates, activeTemplateId } = await loadTemplates();
+  const provider = await loadTargetProvider();
+  const menuTitle = provider === 'gemini' ? 'Send to Gemini' : 'Send to ChatGPT';
 
   if (templates.length <= 1) {
     // Single template (or empty due to storage corruption): simple top-level item
     const itemId = templates[0]?.id ?? activeTemplateId ?? 'default';
     chrome.contextMenus.create({
       id: `${MENU_ITEM_PREFIX}${itemId}`,
-      title: 'Send to ChatGPT',
+      title: menuTitle,
       contexts: ['selection', 'page'],
     });
   } else {
     // Multiple templates: parent + submenu
     chrome.contextMenus.create({
       id: MENU_ID,
-      title: 'Send to ChatGPT',
+      title: menuTitle,
       contexts: ['selection', 'page'],
     });
 
@@ -219,7 +246,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Rebuild menu when storage changes (e.g. templates edited in Options)
 chrome.storage.onChanged.addListener((changes) => {
-  if ('templates' in changes || 'activeTemplateId' in changes) {
+  if ('templates' in changes || 'activeTemplateId' in changes || 'targetProvider' in changes) {
     rebuildContextMenu().catch((err) => {
       console.error('[ChatGPT Web Injector] Context menu rebuild failed:', err);
     });

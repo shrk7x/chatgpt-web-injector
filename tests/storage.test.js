@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  loadTargetProvider,
+  saveTargetProvider,
   DEFAULT_YOUTUBE_SUMMARY_TEMPLATE,
   loadYoutubeSummaryTemporaryChatEnabled,
   loadYoutubeSummaryTemplate,
@@ -148,4 +150,21 @@ test('saveSelectionTooltipEnabled persists false and true values', async () => {
   } finally {
     chromeStorage.restore();
   }
+});
+
+test('target defaults to ChatGPT and rejects invalid stored values', async () => {
+  for (const value of [undefined, 'unknown', null]) {
+    const storage = installChromeStorage({ targetProvider: value });
+    try { assert.equal(await loadTargetProvider(), 'chatgpt'); } finally { storage.restore(); }
+  }
+});
+
+test('target persists Gemini and validates saves', async () => {
+  const storage = installChromeStorage();
+  try {
+    await saveTargetProvider('gemini');
+    assert.equal(await loadTargetProvider(), 'gemini');
+    await assert.rejects(() => saveTargetProvider('unknown'));
+    assert.equal(await loadTargetProvider(), 'gemini');
+  } finally { storage.restore(); }
 });

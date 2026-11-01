@@ -1,4 +1,6 @@
 import {
+  loadTargetProvider,
+  saveTargetProvider,
   loadTemplates,
   saveTemplates,
   loadYoutubeSummaryTemporaryChatEnabled,
@@ -139,4 +141,40 @@ async function init() {
 
 init().catch((err) => {
   console.error('[ChatGPT Web Injector] Popup load failed:', err);
+});
+
+const targetSelect = document.getElementById('target-provider');
+const targetStatus = document.getElementById('target-status');
+let savedTarget = 'chatgpt';
+function renderTarget(provider) {
+  savedTarget = provider === 'gemini' ? 'gemini' : 'chatgpt';
+  targetSelect.value = savedTarget;
+  tempChatToggle.disabled = savedTarget === 'gemini';
+  tempChatToggle.title = 'Temporary Chat applies only to ChatGPT YouTube summaries.';
+  targetStatus.textContent = savedTarget === 'gemini'
+    ? 'Gemini selected. Temporary Chat is available only in ChatGPT.' : '';
+}
+loadTargetProvider().then(renderTarget).catch(() => {
+  targetStatus.textContent = 'Could not load assistant setting. Please reopen this page.';
+  targetSelect.disabled = true;
+});
+targetSelect.addEventListener('change', async () => {
+  const nextTarget = targetSelect.value;
+  targetSelect.disabled = true;
+  try {
+    await saveTargetProvider(nextTarget);
+    renderTarget(nextTarget);
+  } catch (_error) {
+    targetSelect.value = savedTarget;
+    targetStatus.textContent = 'Could not save assistant. Please try again.';
+  } finally {
+    targetSelect.disabled = false;
+  }
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'sync') return;
+  if (changes.targetProvider) renderTarget(changes.targetProvider.newValue);
+  if (changes.youtubeSummaryTemporaryChatEnabled) {
+    tempChatToggle.checked = changes.youtubeSummaryTemporaryChatEnabled.newValue !== false;
+  }
 });
