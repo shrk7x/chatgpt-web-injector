@@ -2,7 +2,7 @@ import { readFile, appendFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const PREFIX = '[ChatGPT Web Injector]';
-const CONFIG_KEYS = ['CHROME_CLIENT_ID', 'CHROME_CLIENT_SECRET', 'CHROME_REFRESH_TOKEN', 'CHROME_PUBLISHER_ID', 'CHROME_EXTENSION_ID'];
+const CONFIG_KEYS = ['CHROME_ACCESS_TOKEN', 'CHROME_PUBLISHER_ID', 'CHROME_EXTENSION_ID'];
 
 /**
  * Upload a release package and submit it for automatic publication after review.
@@ -18,28 +18,16 @@ export async function publishExtension({ env, zip, version, fetch: request = glo
 
   async function json(url, options, label) {
     const response = await request(url, { ...options, signal: AbortSignal.timeout(60_000) });
-    // Do not log response bodies: OAuth and error responses can contain credentials.
+    // Do not log response bodies: error responses can contain credentials.
     if (!response.ok) throw new Error(`${label} failed (HTTP ${response.status}); check credentials and the developer dashboard.`);
     const data = await response.json();
     if (data.error) throw new Error(`${label} returned an API error; check the developer dashboard.`);
     return data;
   }
 
-  const token = await json('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    body: new URLSearchParams({
-      client_id: env.CHROME_CLIENT_ID,
-      client_secret: env.CHROME_CLIENT_SECRET,
-      refresh_token: env.CHROME_REFRESH_TOKEN,
-      grant_type: 'refresh_token'
-    })
-  }, 'OAuth');
-  if (!token.access_token) throw new Error('OAuth response is missing an access token');
-  if (process.env.GITHUB_ACTIONS === 'true') console.log(`::add-mask::${token.access_token}`);
-
   const name = `publishers/${encodeURIComponent(env.CHROME_PUBLISHER_ID)}/items/${env.CHROME_EXTENSION_ID}`;
   const base = 'https://chromewebstore.googleapis.com';
-  const headers = { Authorization: `Bearer ${token.access_token}` };
+  const headers = { Authorization: `Bearer ${env.CHROME_ACCESS_TOKEN}` };
   const statusUrl = `${base}/v2/${name}:fetchStatus`;
   const status = await json(statusUrl, { headers }, 'Status');
   const hasVersion = (revision) => revision?.distributionChannels?.some((channel) => channel.crxVersion === version);

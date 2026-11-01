@@ -64,6 +64,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      id-token: write
     concurrency:
       group: chrome-web-store-publish
       cancel-in-progress: false
@@ -109,11 +110,20 @@ jobs:
           echo "ZIP_PATH=$ZIP_PATH" >> "$GITHUB_ENV"
           echo "EXTENSION_VERSION=$VERSION" >> "$GITHUB_ENV"
 
+      - name: Authenticate to Google with GitHub identity
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.CHROME_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.CHROME_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          create_credentials_file: false
+          export_environment_variables: false
+
       - name: Publish to Chrome Web Store
         env:
-          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
-          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
-          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          CHROME_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
           CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
           CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
         run: node scripts/chrome_webstore.js "$ZIP_PATH" "$EXTENSION_VERSION"

@@ -36,7 +36,7 @@ package.json                - Test runner only (node --test), devDependency: jsd
 - **Changelog:** Automatically generated from commit messages (use Conventional Commits like `feat:`, `fix:`).
 - **Artifacts:** A `.zip` file of the extension is automatically generated and attached to each GitHub Release.
 - **Version Bumping:** `manifest.json` and `package.json` are automatically updated by the release workflow.
-- **Store Publish:** The Release workflow uploads the exact release ZIP through Chrome Web Store API v2 and submits it for automatic publication after Google review. Requires the GitHub Secrets and Variables documented in README.
+- **Store Publish:** The Release workflow uploads the exact release ZIP through Chrome Web Store API v2 and submits it for automatic publication after Google review. Uses keyless GitHub OIDC and a dedicated service account; requires the Variables documented in README.
 - **Retry:** Dispatch Release with `release_tag` set to an existing stable tag; no version bump is required. A successful submission is not proof of store approval or browser delivery.
 
 ## Manual Verification Checklist
