@@ -36,3 +36,19 @@ export async function mergeReleasePullRequest({ github, context, number, sha }) 
   });
   if (!data.merged) throw new Error(`Release PR was not merged: ${data.message}`);
 }
+
+/**
+ * Select the release ZIP to deliver, including retries on weeks without new PRs.
+ * @param {{ github: object, context: object, releaseTag?: string }} options
+ * @returns {Promise<string|null>} Release tag, or null if no stable release exists.
+ */
+export async function getStoreReleaseTag({ github, context, releaseTag }) {
+  if (releaseTag) return releaseTag;
+  try {
+    const { data } = await github.rest.repos.getLatestRelease(context.repo);
+    return data.tag_name;
+  } catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
+}

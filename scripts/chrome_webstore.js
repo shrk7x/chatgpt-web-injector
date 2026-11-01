@@ -7,7 +7,7 @@ const CONFIG_KEYS = ['CHROME_ACCESS_TOKEN', 'CHROME_PUBLISHER_ID', 'CHROME_EXTEN
 /**
  * Upload a release package and submit it for automatic publication after review.
  * @param {object} options Configuration, package, version, and optional API adapters.
- * @returns {Promise<string>} Confirmed store submission state.
+ * @returns {Promise<string>} Store state, or DEFERRED while another version is reviewed.
  */
 export async function publishExtension({ env, zip, version, fetch: request = globalThis.fetch, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), log = console.log }) {
   const missing = CONFIG_KEYS.filter((key) => !env[key]?.trim());
@@ -38,7 +38,10 @@ export async function publishExtension({ env, zip, version, fetch: request = glo
     return 'PUBLISHED';
   }
   if (submitted?.state === 'PENDING_REVIEW') {
-    if (!hasVersion(submitted)) throw new Error('Another version is already awaiting review; resolve it in the developer dashboard first.');
+    if (!hasVersion(submitted)) {
+      log(`${PREFIX} Version ${version}: DEFERRED. Another version is awaiting review; retry on the next weekly run.`);
+      return 'DEFERRED';
+    }
     log(`${PREFIX} Version ${version} is already pending review.`);
     return 'PENDING_REVIEW';
   }
@@ -71,7 +74,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const version = process.argv[3];
     const state = await publishExtension({ env: process.env, zip, version });
     if (process.env.GITHUB_STEP_SUMMARY) {
-      await appendFile(process.env.GITHUB_STEP_SUMMARY, `Chrome Web Store version **${version}**: **${state}**.\n\nPending review means submitted, not yet live. Google publishes approved DEFAULT_PUBLISH submissions automatically.\n`);
+      const detail = state === 'DEFERRED'
+        ? 'Not uploaded or submitted: another version is awaiting review. The next weekly run will check the latest release again.'
+        : 'Pending review means submitted, not yet live. Google publishes approved DEFAULT_PUBLISH submissions automatically.';
+      await appendFile(process.env.GITHUB_STEP_SUMMARY, `Chrome Web Store version **${version}**: **${state}**.\n\n${detail}\n`);
     }
   } catch (error) {
     console.error(`${PREFIX} ${error.message}`);

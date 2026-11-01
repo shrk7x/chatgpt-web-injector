@@ -107,7 +107,7 @@ for (const [key, state] of [['publishedItemRevisionStatus', 'PUBLISHED'], ['subm
 
 test('does not overwrite a different version awaiting review', async () => {
   const mock = api([{ submittedItemRevisionStatus: { state: 'PENDING_REVIEW', distributionChannels: [{ crxVersion: '0.1.1' }] } }]);
-  await assert.rejects(run(mock), /already.*review/);
+  assert.equal(await run(mock), 'DEFERRED');
   assert.equal(mock.calls.length, 1);
 });
 
@@ -116,4 +116,22 @@ test('accepts a short-lived service-account token without OAuth client secrets',
   const env = { CHROME_ACCESS_TOKEN: 'short-lived-token', CHROME_PUBLISHER_ID: config.CHROME_PUBLISHER_ID, CHROME_EXTENSION_ID: config.CHROME_EXTENSION_ID };
   assert.equal(await run(mock, env), 'PENDING_REVIEW');
   assert.equal(mock.calls[0].headers.Authorization, 'Bearer short-lived-token');
+});
+
+test('a deferred release can be submitted on the next run after the old review clears', async () => {
+  const firstWeek = api([{ submittedItemRevisionStatus: {
+    state: 'PENDING_REVIEW', distributionChannels: [{ crxVersion: '0.1.1' }]
+  } }]);
+  assert.equal(await run(firstWeek), 'DEFERRED');
+  assert.equal(firstWeek.calls.length, 1);
+
+  const nextWeek = api([
+    { publishedItemRevisionStatus: {
+      state: 'PUBLISHED', distributionChannels: [{ crxVersion: '0.1.1' }]
+    } },
+    { uploadState: 'SUCCEEDED', crxVersion: '0.1.2' },
+    { state: 'PENDING_REVIEW' }
+  ]);
+  assert.equal(await run(nextWeek), 'PENDING_REVIEW');
+  assert.equal(nextWeek.calls.length, 3);
 });
