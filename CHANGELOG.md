@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.2.0...chatgpt-web-injector-v0.2.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* retry deferred store releases weekly ([#84](https://github.com/shrk7x/chatgpt-web-injector/issues/84)) ([96cd153](https://github.com/shrk7x/chatgpt-web-injector/commit/96cd153bfc83adb4928d18735cac3899731c1aa4))
+
 ## [0.2.0](https://github.com/shrk7x/chatgpt-web-injector/compare/chatgpt-web-injector-v0.1.1...chatgpt-web-injector-v0.2.0) (2026-11-01)
 
 
