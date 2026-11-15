@@ -1,0 +1,11 @@
+# Selection demo review record
+
+The English selection demo for [#86](https://github.com/shrk7x/chatgpt-web-injector/issues/86) is a local review artifact. It does not ship with the extension or require a Chrome Web Store release.
+
+- Build: the unmodified [v0.2.1 release ZIP](https://github.com/shrk7x/chatgpt-web-injector/releases/tag/chatgpt-web-injector-v0.2.1), SHA-256 `74562c5a095449a14c90244344e34e718aab36e295516d093699cba388e810ab`.
+- Capture: page content only, in Chrome for Testing with a fresh temporary profile. The source article is synthetic. The released extension's **Show floating BOT button on text selection** setting was enabled in Options; the selection template was left at its default.
+- Destination: a read-only check of the live signed-out page got HTTP 403 with no composer. During recording, the isolated browser resolved the extension's ChatGPT destination to a loopback HTTPS demo composer. Its send control only displays what it received on the page. The recording labels this simulation. No prompt was submitted to ChatGPT, and no AI reply is shown.
+
+To reproduce the handoff, load the release ZIP unpacked in a fresh isolated Chromium profile. Enable the floating BOT button, leave ChatGPT and the default template selected, and open a synthetic article with a known title and URL. Resolve `chatgpt.com` to a loopback HTTPS endpoint serving a local HTML fixture with a textarea and a `data-testid="send-button"` button. Have the button display the textarea value locally on click. Drag over a sentence and click the sparkle button. Verify the fixture received the entire default template with the selected sentence and exact page title and URL. Disable proxies and external DNS in the isolated profile, and block unmatched requests.
+
+For independent review, open the local MP4 from the delivery handoff. Watch from start to finish with audio on. Check that the highlight and BOT click are visible, the full prompt is readable, and the simulated receiver is labeled on screen and explained in the narration. Check that the frames and audio expose no account, browser chrome, history, credentials or real conversation. Record the accepted file hash and submission status in the issue.
