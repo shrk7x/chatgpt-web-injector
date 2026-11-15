@@ -1,5 +1,7 @@
 # AGENTS Guide
 
+Before starting work, read [LESSON.MD](LESSON.MD) and apply the relevant checks. Start development from a GitHub issue in this repository. Maintainers with Chief-staff access can follow the central [issue-delivery skill](https://github.com/shrk7x/chief-staff/blob/main/.agents/skills/issue-delivery/SKILL.md) for triage, implementation, independent acceptance and release verification.
+
 ## Scope
 - Chrome Extension (Manifest V3), plain JavaScript, no bundler, no TypeScript.
 - Make the smallest safe change that satisfies the current request.
